@@ -1,19 +1,50 @@
-﻿// flock
-// multiple flocks
+﻿// multiple flocks
 // colour code flocks? / filter on colour
+
+// flock
 // boid
+// find neighbours
+// hash
+// move
+// steer
+//   separation: steer to avoid crowding local flockmates
+//   alignment: steer towards the average heading of local flockmates
+//   cohesion: steer to move towards the average position(center of mass) of local flockmates
+// avoid objects
+// follow leader
+
 
 function nearestNeighbour() {
 }
 
-var flock = [];
 var id = 0;
 
+function makeFlock() {
+  let boids = [];
+
+  function update(dt) {
+    for (let i = 0; i < boids.length; i++) {
+      boids[i].steer(boids);
+    }
+    for (let i = 0; i < boids.length; i++) {
+      boids[i].update(dt);
+    }
+  }
+
+  function add(boid) {
+    boids.push(boid);
+  }
+
+  return { update, add, boids };
+}
+
 function makeBoid({ forward = new Vector(0, 0, 1), position = new Vector(10, 0, 0), speed = 1, mesh = null } = {}) {
-  let boid = { forward, position, speed, mesh, id: id++ };
-  let separationRange = 1;
-  let detectionRange = 5;
-  let newPosition = new Vector(0, 0, 0);
+  let boid = { forward, position, speed, mesh, id: id++, steer, update };
+  let minSeparation = 2;
+  let maxSeparation = 5;
+  let maxNeighbours = 10;
+  let newForward = new Vector(0, 0, 0);
+  let self = boid;
 
   // move around some point
   function rotateAbout(origin, dt, distance) {
@@ -37,52 +68,100 @@ function makeBoid({ forward = new Vector(0, 0, 1), position = new Vector(10, 0, 
   boid.rotateAbout = rotateAbout;
 
   // steer
-  //   separation: steer to avoid crowding local flockmates
+  //   separation: steer to avoid crowding local flockmates (short range repulsion)
   //   alignment: steer towards the average heading of local flockmates
-  //   cohesion: steer to move towards the average position(center of mass) of local flockmates
+  //   cohesion: steer to move towards the average position (center of mass) of local flockmates (long range attraction)
   var neighbours = [];
 
-  function steer() {
-    getNeighbours();
-    separate();
-    align();
-    cohere();
+  function steer(boids) {
+    getNeighbours(boids);
+    newForward = this.forward;// new Vector(0, 0, 0);
+    newForward = newForward.add(separate());
+    newForward = newForward.add(align());
+    newForward = newForward.add(cohere());
+    newForward = newForward.unit();
+  }
+
+  function update(dt) {
+    this.position = this.position.add(newForward.multiply(speed * dt));
+    this.forward = newForward;
   }
 
   function separate() {
+    let countTooClose = 0;
     let result = new Vector(0, 0, 0);
+
     for (let i = 0; i < neighbours.length; i++) {
-      ;
-    }
-  }
-
-  function align() {
-    let result = new Vector(0, 0, 0);
-    for (let i = 0; i < neighbours.length; i++) {
-      ;
-    }
-  }
-
-  function cohere() {
-    let result = new Vector(0, 0, 0);
-    for (let i = 0; i < neighbours.length; i++) {
-      ;
-    }
-  }
-
-
-  function getNeighbours() {
-    // ignore other boids behind
-    for (var i = 0; i < flock.length; i++) {
-      if (this.id !== flock[i]) {
-        let d = this.position.subtract(flock[i]).length();
-        neighbours.push({ d, boid: flock[i] });
+      //if (neighbours[i].d === 0) {
+      //  result = result.add(new Vector(Math.random(), Math.random(), Math.random()));
+      //  countTooClose++;
+      //}else 
+      if (neighbours[i].d <= minSeparation) {
+        result = result.add(neighbours[i].position.divide(neighbours[i].d));
+        countTooClose++;
       }
     }
 
-    neighbours.filter(function (a) {
-      return a.d <= detectionRange;
-    });
+    if (countTooClose > 0) {
+      result = result.divide(countTooClose);
+      result = result.subtract(self.position);
+      //if (result.length() === 0)
+      //  result = self.forward;
+      //else {
+        result = result.unit();
+        result = result.negative();
+      //}
+    }
+
+    return result;
+  }
+
+  function align() {
+    let result = new Vector(0, 0, 0);// self.forward;
+    for (let i = 0; i < neighbours.length; i++) {
+      result = result.add(neighbours[i].forward);
+    }
+
+    result = result.unit();
+    result = result.add(self.forward);
+
+    if (result.length() === 0) {
+      let angles = self.forward.toAngles();
+      result = Vector.fromAngles(angles.theta / 2, angles.phi / 2);
+    }
+
+    return result;
+  }
+
+  function cohere() {
+    let countTooFar = 0;
+    let result = new Vector(0, 0, 0);
+    for (let i = 0; i < neighbours.length; i++) {
+      if (self.position.subtract(neighbours[i]) > maxSeparation) {
+      result = result.add(neighbours[i].position);
+        countTooFar++;
+      }
+    }
+    result = result.divide(countTooFar);
+    result = result.subtract(self.position);
+    result = result.unit();
+    return result;
+  }
+
+
+  function getNeighbours(boids) {
+    neighbours = [];
+    // ignore other boids behind
+    for (var i = 0; i < boids.length; i++) {
+      if (self.id !== boids[i].id) {
+        let d = self.position.subtract(boids[i].position).length();
+        neighbours.push({ d, id: boids[i].id, forward: boids[i].forward, position: boids[i].position });
+      }
+    }
+
+    //neighbours.filter(function (a) {
+    //  return a.d <= detectionRange;
+    //});
     neighbours.sort(compare);
 
     function compare(a, b) {
