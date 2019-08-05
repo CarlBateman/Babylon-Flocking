@@ -28,7 +28,7 @@ Vector.prototype = {
     else return new Vector(this.x / v, this.y / v, this.z / v);
   },
   equals: function(v) {
-    return this.x == v.x && this.y == v.y && this.z == v.z;
+    return this.x === v.x && this.y === v.y && this.z === v.z;
   },
   dot: function(v) {
     return this.x * v.x + this.y * v.y + this.z * v.z;
