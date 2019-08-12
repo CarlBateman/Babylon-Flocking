@@ -1,26 +1,121 @@
-﻿// relies vector.js
+﻿// relies on vector.js
+var FLOCKING = FLOCKING || (function () {
+  return {};
+})();
 
-function Flock(numBoids = 0) {
-  let boids = [];
-
+FLOCKING.Flock = function (numBoids = 0) {
+  let Flock = FLOCKING.Flock;
   if (this instanceof Flock) {
-    addBoids(numBoids);
+    //console.log("2",this);
+    //return Flock(numBoids).call(Flock);
   } else {
+    //console.log("1",this);
     return new Flock(numBoids);
   }
 
+  let boids = [];
 
-  //function addBoids(numBoids = 1) {
-  //  for (var i = 0; i < numBoids; i++) {
-  //    boids.push(Boid);
-  //  }
-  //}
-}
+  let Boid = FLOCKING.Boid;
 
-//Flock.addBoids = function () {
+  // private
+  let addBoids1 = function (numBoids = 1) {
+    for (var i = 0; i < numBoids; i++) {
+      boids.push(Boid);
+    }
+  };
+  addBoids1(numBoids);
+
+  // private
+  function addBoids2(numBoids = 1) {
+    for (var i = 0; i < numBoids; i++) {
+      boids.push(Boid);
+    }
+  }
+  addBoids2(numBoids);
+
+
+
+
+  let fn = function () { };
+  fn.addBoids_fn = function (numBoids = 1) {
+    addBoids1(numBoids); // <- OK
+    addBoids2(numBoids); // <- OK
+    //addBoids_this(numBoids); // <- BAD
+    //ob.addBoids_ob(numBoids); // <- OK order
+    //this.addBoids_this(numBoids); // <- BAD
+    for (var i = 0; i < numBoids; i++) {
+      boids.push(Boid);
+    }
+  };
+  fn.addBoids_fn(numBoids);
+
+
+
+  let ob = {};
+  // exposed (public or privileged?)
+  ob.addBoids_ob = function (numBoids = 1) {
+    addBoids1(numBoids); // <- OK
+    addBoids2(numBoids); // <- OK
+    //addBoids_this(numBoids); // <- BAD
+    //fn.addBoids_fn(numBoids); // <- OK order
+    //this.addBoids_this(numBoids); // <- BAD
+    for (var i = 0; i < numBoids; i++) {
+      boids.push(Boid);
+    }
+  };
+  ob.addBoids_ob(numBoids);
+
+  // public IF return this
+  this.addBoids_this = function (numBoids = 1) {
+    addBoids1(numBoids); // <- OK
+    addBoids2(numBoids); // <- OK
+    ob.addBoids_ob(numBoids); // <- OK order
+    fn.addBoids_fn(numBoids); // <- OK order
+    for (var i = 0; i < numBoids; i++) {
+      boids.push(Boid);
+    }
+  };
+  this.addBoids_this(numBoids);
+
+
+
+
+  return this;
+};
+
+FLOCKING.Flock.prototype.addBoids12 = function (numBoids) {
+  for (var i = 0; i < numBoids; i++) {
+    boids.push(Boid);
+  }
+};
+
+FLOCKING.Flock.addBoids13 = function () {
+  for (var i = 0; i < numBoids; i++) {
+    boids.push(Boid);
+  }
+};
+
+
+FLOCKING.Flock.prototype.test1 = function () {
+  console.log(this);
+  //this.test2();
+  FLOCKING.Flock.test2();
+};
+
+FLOCKING.Flock.test2 = function () {
+  let a;
+  console.log(this);
+};
+
+//Flock.prototype = {};
+
+//Flock.addBoids = function (numBoids = 1) {
+//  for (var i = 0; i < numBoids; i++) {
+//    this.boids.push(Boid);
+//  }
 //};
 
-function Boid( { forward = new Vector(0, 0, 1),
+FLOCKING.Boid = function ({ forward = new Vector(0, 0, 1),
                  position = new Vector(10, 0, 0),
                  speed = 1,
                  minSeparation = 2,
@@ -29,6 +124,7 @@ function Boid( { forward = new Vector(0, 0, 1),
                  mesh = null
                } = {}
              ) {
+  let Boid = FLOCKING.Boid;
 
   if (this instanceof Boid) {
     this.forward = forward;
@@ -91,7 +187,7 @@ function Boid( { forward = new Vector(0, 0, 1),
 
 }
 
-Boid.prototype = {
+FLOCKING.Boid.prototype = {
   separate: function () { },
 
   align: function () { },
@@ -100,9 +196,44 @@ Boid.prototype = {
 
   getNeighbours: function () { },
 
-  addBoids: function (numBoids = 1) {
-    for (var i = 0; i < numBoids; i++) {
-      boids.push(Boid);
-    }
-  }
+
 };
+
+
+
+//var Gadget = (function () {
+//  // static variable/property
+//  var counter = 0,
+//    NewGadget;
+//  // this will become the
+//  // new constructor implementation
+//  NewGadget = function () {
+//    counter += 1;
+//  };
+//  // a privileged method
+//  NewGadget.prototype.getLastId = function () {
+//    return counter;
+//  };
+//  // overwrite the constructor
+//  return NewGadget;
+//}());
+
+//var g = new Gadget();
+
+//(function () {
+//  var id = 0;
+
+//  this.next = function () {
+//    return id++;
+//  };
+
+//  this.reset = function () {
+//    id = 0;
+//  };
+//}).apply(FLOCKING);
+
+
+//(function () {
+//  this.Block = function () { return {} };
+//}).apply(FLOCKING);
+////FLOCKING.Block = function () { return {}; };

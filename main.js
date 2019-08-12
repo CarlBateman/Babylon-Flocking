@@ -6,39 +6,36 @@ window.addEventListener('DOMContentLoaded', function () {
 
   var createScene = function () {
     var scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color3(0.5, 0.8, 0.75);
+    scene.clearColor = new BABYLON.Color3(0.05, 0.05, 0.2);
 
     var camera = new BABYLON.ArcRotateCamera('camera1', 0, 0, 1, new BABYLON.Vector3(0, 0, 0), scene);
     camera.upperAlphaLimit = 100;
     camera.upperBetaLimit = 100;
     camera.lowerAlphaLimit = -100;
     camera.lowerBetaLimit = -100;
-    camera.setPosition(new BABYLON.Vector3(10, 8, -28));
-    camera.setPosition(new BABYLON.Vector3(0, 50, 0));
+    camera.setPosition(new BABYLON.Vector3(-50, 50, -50));
     camera.alpha = Math.PI * 1.5;
-    //camera.beta = -Math.PI / 10;
     camera.attachControl(canvas, false);
     camera.wheelDeltaPercentage = 0.01;
 
     var light = new BABYLON.DirectionalLight("Directionallight1", new BABYLON.Vector3(1, -1, 1), scene);
-    light.position = new BABYLON.Vector3(-40, 40, -40);
-    var light2 = new BABYLON.DirectionalLight("Directionallight1", new BABYLON.Vector3(-1, 1, -1), scene);
-    light2.intensity = .5;
+    var light2 = new BABYLON.DirectionalLight("Directionallight1", new BABYLON.Vector3(-1, -1, -1), scene);
 
-
-    var n = 10;
+    var n = 30;
     for (var i = 0; i < n; i++) {
       for (var j = 0; j < n; j++) {
-        var gd = BABYLON.MeshBuilder.CreateGround("gd", { width: 3, height: 3, subdivisions: 4, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+        var gd = BABYLON.MeshBuilder.CreateGround("gd", { width: 4, height: 4, subdivisions: 4, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
         gd.material = new BABYLON.StandardMaterial("coneMaterial", scene);
-        gd.material.diffuseColor = new BABYLON.Color3(.75 + Math.random() / 4, .75 + Math.random() / 4, .75);
-        gd.rotation.y = 1;//Math.Pi / 3;
-        gd.position.x = (-n/2 + i) * n;
-        gd.position.z = (-n/2 + j) * n;
+        gd.material.diffuseColor = new BABYLON.Color3(0,0,0);
+        gd.material.specularColor  = new BABYLON.Color3(0,0,0);
+        gd.material.emissiveColor = new BABYLON.Color3(.1, .1, .3);
+        gd.rotation.y = Math.PI / 3;
+        gd.position.x = (-n/2 + i) * 10;
+        gd.position.z = (-n / 2 + j) * 10;
+        gd.position.y = -5;
       }
     }
-
-
+    
     function makeFlatCone() {
       let cone = BABYLON.MeshBuilder.CreateCylinder("cone", { diameterTop: 0, diameterBottom: 1.5, height: 1.5, tessellation: 4, updatable: true }, scene);
       let positions = cone.getVerticesData(BABYLON.VertexBuffer.PositionKind);
@@ -93,7 +90,7 @@ window.addEventListener('DOMContentLoaded', function () {
     let flock = makeFlock();
 
     let cones = [];
-    let numBoids = 38;
+    let numBoids = 200;
     for (let i = 0; i < numBoids; i++) {
       let boidPos = new BABYLON.Mesh("boid", scene);
       //boidPos.position.x = i;
@@ -111,7 +108,11 @@ window.addEventListener('DOMContentLoaded', function () {
 
       bd.mesh = boidPos;
       bd.position.x = i - 4;
-      bd.forward.z = i & 1 ? -1 : 1;
+      //bd.forward.z = i & 1 ? -1 : 1;
+
+      bd.position.x = (Math.random() - .5) * numBoids / 1;
+      bd.position.z = (Math.random() - .5) * numBoids / 1;
+      //bd.position.y = (Math.random() - .5) * numBoids;
 
       flock.add(bd);
 
@@ -120,6 +121,9 @@ window.addEventListener('DOMContentLoaded', function () {
 
     let dt = 0.1;//clock.getDelta() / 1000;
     coneMaster.isVisible = false;
+
+    //let boidCentre = new BABYLON.Mesh("boid", scene);
+    //camera.setTarget(boidCentre);
     camera.setTarget(flock.boids[Math.ceil(numBoids / 2)].mesh);
 
 
@@ -133,6 +137,18 @@ window.addEventListener('DOMContentLoaded', function () {
     if(dt>0)
       flock.update(dt);
       //dt = 0;
+
+      //boidCentre.position.x = flock.bounds.centre.x;
+      //boidCentre.position.y = flock.bounds.centre.y;
+      //boidCentre.position.z = flock.bounds.centre.z;
+
+      let scale = flock.bounds.centre.subtract(flock.bounds.lower);
+      let dist = scale.length();
+
+      let pos = camera.position.clone();
+      pos.y = dist * 2;
+      //camera.setPosition(pos);
+      camera.radius = dist * 1.5;
 
       for (let i = 0; i < flock.boids.length; i++) {
         let bd = flock.boids[i];

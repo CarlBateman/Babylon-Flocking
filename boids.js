@@ -14,18 +14,33 @@
 // follow leader
 
 
-function nearestNeighbour() {
-}
-
 var id = 0;
 
 function makeFlock() {
   let boids = [];
+  let bounds = { lower: new Vector(), upper: new Vector(), centre: new Vector() };
 
   function update(dt) {
+    let lower = boids[0].position.clone();
+    let upper = boids[0].position.clone();
+
+    let bd;
+
     for (let i = 0; i < boids.length; i++) {
+      bd = boids[i];
+      lower.x = bd.position.x < lower.x ? bd.position.x : lower.x;
+      lower.z = bd.position.z < lower.z ? bd.position.z : lower.z;
+
+      upper.x = bd.position.x > upper.x ? bd.position.x : upper.x;
+      upper.z = bd.position.z > upper.z ? bd.position.z : upper.z;
+
       boids[i].steer(boids);
     }
+
+    bounds.upper = upper;
+    bounds.lower = lower;
+    bounds.centre = upper.add(lower).divide(2);
+
     for (let i = 0; i < boids.length; i++) {
       boids[i].update(dt);
     }
@@ -35,7 +50,7 @@ function makeFlock() {
     boids.push(boid);
   }
 
-  return { update, add, boids };
+  return { update, add, boids, bounds };
 }
 
 function makeBoid({ forward = new Vector(0, 0, 1), position = new Vector(10, 0, 0), speed = 1, mesh = null } = {}) {
