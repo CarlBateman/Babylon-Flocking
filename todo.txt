@@ -1,0 +1,4 @@
+﻿Tidy code
+Map to sphere
+
+Versions for PlayCanvas, Three.js, Babylon.js, etc.
