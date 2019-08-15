@@ -2,7 +2,8 @@
 window.addEventListener('DOMContentLoaded', function () {
   let boid2 = new FLOCKING.Boid();
   //boid2.update(1);
-
+  console.log(boid2.id);
+  boid2.id = 10;
   boid2.minSeparation = 2;
 
   let flock1 = new FLOCKING.Flock(1);
