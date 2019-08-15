@@ -5,115 +5,61 @@ var FLOCKING = FLOCKING || (function () {
 
 FLOCKING.Flock = function (numBoids = 0) {
   let Flock = FLOCKING.Flock;
-  if (this instanceof Flock) {
-    //console.log("2",this);
-    //return Flock(numBoids).call(Flock);
-  } else {
-    //console.log("1",this);
+  if (!(this instanceof Flock)) {
     return new Flock(numBoids);
   }
 
-  let boids = [];
+  this.boids = [];
 
   let Boid = FLOCKING.Boid;
 
-  // private
-  let addBoids1 = function (numBoids = 1) {
-    for (var i = 0; i < numBoids; i++) {
-      boids.push(Boid);
+  this.addBoid = function (nboid) {
+    if (nboid instanceof Boid) {
+      this.boids.push(nboid);
+    } else {
+      this.boids.push(Boid());
     }
   };
-  addBoids1(numBoids);
 
-  // private
-  function addBoids2(numBoids = 1) {
-    for (var i = 0; i < numBoids; i++) {
-      boids.push(Boid);
-    }
-  }
-  addBoids2(numBoids);
+  this.addBoids = function (nboids = 1) {
+    if (Array.isArray(nboids)) {
+      this.boids = this.boids.concat(nboids);
+    } else
+      for (var i = 0; i < nboids; i++) {
+        this.boids.push(Boid());
+      }
+  };
+  this.addBoids(numBoids);
 
-
-
-
-  let fn = function () { };
-  fn.addBoids_fn = function (numBoids = 1) {
-    addBoids1(numBoids); // <- OK
-    addBoids2(numBoids); // <- OK
-    //addBoids_this(numBoids); // <- BAD
-    //ob.addBoids_ob(numBoids); // <- OK order
-    //this.addBoids_this(numBoids); // <- BAD
-    for (var i = 0; i < numBoids; i++) {
-      boids.push(Boid);
+  this.update = function (dt = 0) {
+    for (var i = 0; i < this.boids.length; i++) {
+      this.boids[i].update(dt, this.boids);
     }
   };
-  fn.addBoids_fn(numBoids);
 
-
-
-  let ob = {};
-  // exposed (public or privileged?)
-  ob.addBoids_ob = function (numBoids = 1) {
-    addBoids1(numBoids); // <- OK
-    addBoids2(numBoids); // <- OK
-    //addBoids_this(numBoids); // <- BAD
-    //fn.addBoids_fn(numBoids); // <- OK order
-    //this.addBoids_this(numBoids); // <- BAD
-    for (var i = 0; i < numBoids; i++) {
-      boids.push(Boid);
-    }
+  this.removeBoids = function (numBoids) {
+    let start = this.boids.length - numBoids;
+    this.boids.splice(start, numBoids);
   };
-  ob.addBoids_ob(numBoids);
 
-  // public IF return this
-  this.addBoids_this = function (numBoids = 1) {
-    addBoids1(numBoids); // <- OK
-    addBoids2(numBoids); // <- OK
-    ob.addBoids_ob(numBoids); // <- OK order
-    fn.addBoids_fn(numBoids); // <- OK order
-    for (var i = 0; i < numBoids; i++) {
-      boids.push(Boid);
-    }
-  };
-  this.addBoids_this(numBoids);
+  //this.removeBoid = function (idx) {
+  //  this.boids.splice(start, numBoids);
+  //};
 
+  //this.addBoids = addBoids;
+  //this.addBoid = addBoid;
+  //this.update = update;
+  //this.boids = boids;
 
-
-
-  return this;
+  //return  addBoids ;
 };
 
-FLOCKING.Flock.prototype.addBoids12 = function (numBoids) {
-  for (var i = 0; i < numBoids; i++) {
-    boids.push(Boid);
-  }
-};
-
-FLOCKING.Flock.addBoids13 = function () {
-  for (var i = 0; i < numBoids; i++) {
-    boids.push(Boid);
-  }
-};
-
-
-FLOCKING.Flock.prototype.test1 = function () {
-  console.log(this);
-  //this.test2();
-  FLOCKING.Flock.test2();
-};
-
-FLOCKING.Flock.test2 = function () {
-  let a;
-  console.log(this);
-};
-
-//Flock.prototype = {};
-
-//Flock.addBoids = function (numBoids = 1) {
-//  for (var i = 0; i < numBoids; i++) {
-//    this.boids.push(Boid);
+//FLOCKING.Flock.prototype.update = function (dt) {
+//  for (var i = 0; i < this.boids.length; i++) {
+//    ;
 //  }
 //};
+
 
 FLOCKING.Boid = function ({ forward = new Vector(0, 0, 1),
                  position = new Vector(10, 0, 0),
@@ -123,32 +69,45 @@ FLOCKING.Boid = function ({ forward = new Vector(0, 0, 1),
                  maxNeighbours = 10,
                  mesh = null
                } = {}
-             ) {
+) {
   let Boid = FLOCKING.Boid;
 
-  if (this instanceof Boid) {
-    this.forward = forward;
-    this.position = position;
-    this.speed = speed;
-    this.mesh = mesh;
-    this.minSeparation = 2;
-    this.maxSeparation = 5;
-    this.maxNeighbours = 10;
-  } else {
-    return new Boid( { forward: new Vector(0, 0, 1),
-                       position: new Vector(10, 0, 0),
-                       speed: 1,
-                       minSeparation: 2,
-                       maxSeparation: 5,
-                       maxNeighbours: 10,
-                       mesh: null
-                     } );
+  if (!(this instanceof Boid)) {
+    return new Boid({
+      forward: new Vector(0, 0, 1),
+      position: new Vector(10, 0, 0),
+      speed: 1,
+      minSeparation: 2,
+      maxSeparation: 5,
+      maxNeighbours: 10,
+      mesh: null
+    });
   }
+
+  this.forward = forward;
+  this.position = position;
+  this.speed = speed;
+  this.mesh = mesh;
+  this.minSeparation = 2;
+  this.maxSeparation = 5;
+  this.maxNeighbours = 10;
 
   // private
   let id = 0;
-  let newForward = new Vector(0, 0, 0);
   let neighbours = [];
+
+  this.update = function (dt, boids) {
+    getNeighbours(boids);
+    //let newForward = new Vector(0, 0, 0);
+    let newForward = forward;// new Vector(0, 0, 0);
+    newForward = newForward.add(separate());
+    newForward = newForward.add(align());
+    newForward = newForward.add(cohere());
+    newForward = newForward.unit();
+
+    this.position = this.position.add(newForward.multiply(speed * dt));
+    this.forward = newForward;
+  };
 
   let getNeighbours = function (boids) {
     neighbours = [];
@@ -156,8 +115,8 @@ FLOCKING.Boid = function ({ forward = new Vector(0, 0, 1),
     //     only process boids in front
     //     ignore other boids behind
     for (var i = 0; i < boids.length; i++) {
-      if (self.id !== boids[i].id) {
-        let d = self.position.subtract(boids[i].position).length();
+      if (id !== boids[i].id) {
+        let d = position.subtract(boids[i].position).length();
         neighbours.push({ d, id: boids[i].id, forward: boids[i].forward, position: boids[i].position });
       }
     }
@@ -169,35 +128,29 @@ FLOCKING.Boid = function ({ forward = new Vector(0, 0, 1),
     }
 
     neighbours = neighbours.slice(0, maxNeighbours);
+
   };
 
-  function update(dt = 0.1) {
-    this.position = this.position.add(newForward.multiply(speed * dt));
-    this.forward = newForward;
-  }
+  function separate() { }
+  function align() { }
+  function cohere() { }
 
-  function steer () {
-    getNeighbours(boids);
-    newForward = this.forward;// new Vector(0, 0, 0);
-    newForward = newForward.add(separate());
-    newForward = newForward.add(align());
-    newForward = newForward.add(cohere());
-    newForward = newForward.unit();
-  }
 
+  //this.update = update;
+  //return this;
+
+  //return {update, position, forward};
 }
 
-FLOCKING.Boid.prototype = {
-  separate: function () { },
+//FLOCKING.Boid.prototype = {
+//  separate: function () { },
 
-  align: function () { },
+//  align: function () { },
 
-  cohere: function () { },
+//  cohere: function () { },
 
-  getNeighbours: function () { },
-
-
-};
+//  getNeighbours: function () { },
+//};
 
 
 
