@@ -89,7 +89,7 @@ window.addEventListener('DOMContentLoaded', function () {
 
     let flock = FLOCKING.Flock();
 
-    let numBoids = 10;
+    let numBoids = 100;
     for (let i = 0; i < numBoids; i++) {
       let boidPos = new BABYLON.Mesh("boid", scene);
       //boidPos.position.x = i;
@@ -173,7 +173,7 @@ window.addEventListener('DOMContentLoaded', function () {
 
       for (let i = 0; i < flock.boids.length; i++) {
         let bd = flock.boids[i];
-        bd.mesh.setDirection(bd.forward);
+        bd.mesh.setDirection(bd.heading);
         bd.mesh.position.x = bd.position.x;
         bd.mesh.position.y = bd.position.y;
         bd.mesh.position.z = bd.position.z;

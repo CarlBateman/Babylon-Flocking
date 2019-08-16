@@ -33,6 +33,12 @@ FLOCKING.Flock = function (numBoids = 0) {
   this.addBoids(numBoids);
 
   this.update = function (dt = 0) {
+
+  // use insert sort
+    //let tx = this.boids.slice().sort((a, b) => a.position.x - b.position.x);
+    //let ty = this.boids.slice().sort((a, b) => a.position.y - b.position.y);
+    //let tz = this.boids.slice().sort((a, b) => a.position.z - b.position.z);
+
     let lower = this.boids[0].position.clone();
     let upper = this.boids[0].position.clone();
 
@@ -40,6 +46,9 @@ FLOCKING.Flock = function (numBoids = 0) {
 
     for (let i = 0; i < this.boids.length; i++) {
       bd = this.boids[i];
+
+      // neighbour filter on range
+      // don't use native filter (for is quicker)
       lower.x = bd.position.x < lower.x ? bd.position.x : lower.x;
       lower.z = bd.position.z < lower.z ? bd.position.z : lower.z;
 
@@ -96,13 +105,22 @@ FLOCKING.Boid = function ({ forward_in = new Vector(0, 0, 1),
   this.maxSeparation = maxSeparation_in;
   this.maxNeighbours = maxNeighbours_in;
 
-  this.id = Boid.getNextId();
+  this.heading = new Vector(0, 0, 0);
   // private
   let newForward = new Vector(0, 0, 0);
   let neighbours = [];
 
   this.update = function (dt) {
     this.position = this.position.add(newForward.multiply(this.speed * dt));
+    if (!this.heading.equals(this.forward))
+    this.heading = newForward;
+    else
+      newForward;
+
+
+    this.forward = this.forward.add(this.forward);
+    //this.heading = this.forward.add(newForward).divide(3);
+
     this.forward = newForward;
   };
 
@@ -111,17 +129,22 @@ FLOCKING.Boid = function ({ forward_in = new Vector(0, 0, 1),
     //let newForward = new Vector(0, 0, 0);
     newForward = this.forward;// new Vector(0, 0, 0);
     newForward = newForward.add(separate());
+    //this.heading = align();
     newForward = newForward.add(align());
     newForward = newForward.add(cohere());
     newForward = newForward.unit();
   };
 
-  let getNeighbours = function (boids) {
+  this.getId = ((id) => {
+    return ()=>id;
+  })(Boid.getNextId());
+
+  let getNeighbours = (boids) => {
     neighbours = [];
     // todo
     //     only process boids in front, ignoring boids behind
     for (var i = 0; i < boids.length; i++) {
-      if (this.id !== boids[i].id) {
+      if (this.getId() !== boids[i].getId()) {
         let d = this.position.subtract(boids[i].position).length();
         neighbours.push({ d, id: boids[i].id, forward: boids[i].forward, position: boids[i].position });
       }
@@ -133,15 +156,9 @@ FLOCKING.Boid = function ({ forward_in = new Vector(0, 0, 1),
 
     neighbours.sort((a, b) => a.d - b.d);
 
-    //neighbours.sort(compare);
-
-    //function compare(a, b) {
-    //  return a.d - b.d;
-    //}
-
     neighbours = neighbours.slice(0, this.maxNeighbours);
 
-  }.bind(this);
+  };
 
   let separate = () => {
     let countTooClose = 0;
