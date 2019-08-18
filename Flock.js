@@ -71,72 +71,70 @@ FLOCKING.Flock = function (numBoids = 0) {
     let start = this.boids.length - numBoids;
     this.boids.splice(start, numBoids);
   };
-
 };
 
-FLOCKING.Boid = function ({ forward_in = new Vector(0, 0, 1),
-  position_in = new Vector(10, 0, 0),
-  speed_in = 1,
-  minSeparation_in = 2,
-  maxSeparation_in = 5,
-  maxNeighbours_in = 10,
-  mesh_in = null
+FLOCKING.Boid = function ({ forward = new Vector(0, 0, 1),
+  position = new Vector(10, 0, 0),
+  speed = 1,
+  minSeparation = 3,
+  maxSeparation = 10,
+  maxNeighbours = 10,
+  mesh = null
 } = {}
 ) {
   let Boid = FLOCKING.Boid;
 
   if (!(this instanceof Boid)) {
     return new Boid({
-      forward_in : new Vector(0, 0, 1),
-      position_in : new Vector(10, 0, 0),
-      speed_in : 1,
-      minSeparation_in : 2,
-      maxSeparation_in : 5,
-      maxNeighbours_in : 10,
-      mesh_in : null
+      forward : new Vector(0, 0, 1),
+      position : new Vector(10, 0, 0),
+      speed : 1,
+      minSeparation : 3,
+      maxSeparation : 10,
+      maxNeighbours : 10,
+      mesh : null
     });
   }
 
-  this.forward = forward_in;
-  this.position = position_in;
-  this.speed = speed_in;
-  this.mesh = mesh_in;
-  this.minSeparation = minSeparation_in;
-  this.maxSeparation = maxSeparation_in;
-  this.maxNeighbours = maxNeighbours_in;
+  this.forward = forward;
+  this.position = position;
+  this.speed = speed * 1.5;
+  this.mesh = mesh;
+  this.minSeparation = minSeparation;
+  this.maxSeparation = maxSeparation;
+  this.maxNeighbours = maxNeighbours;
 
-  this.heading = new Vector(0, 0, 0);
+  this.heading = new Vector();
   // private
   let newForward = new Vector(0, 0, 0);
   let neighbours = [];
 
   this.update = function (dt) {
-    this.position = this.position.add(newForward.multiply(this.speed * dt));
-    if (!this.heading.equals(this.forward))
-    this.heading = newForward;
-    else
-      newForward;
+    this.position = this.position.add(this.forward.multiply(this.speed * dt));
 
+    // dampen rotation
+    let change = newForward.subtract(this.heading).divide(20);
 
-    this.forward = this.forward.add(this.forward);
-    //this.heading = this.forward.add(newForward).divide(3);
+    // apply to heading -- cosmetic only
+    this.heading = change.add(this.heading).unit();
+    //this.heading = newForward;
 
+    // apply to forward -- behavioural change
+    this.forward = this.heading;
     this.forward = newForward;
   };
 
   this.steer = function (dt, boids) {
     getNeighbours(boids);
-    //let newForward = new Vector(0, 0, 0);
-    newForward = this.forward;// new Vector(0, 0, 0);
+    newForward = this.forward;
     newForward = newForward.add(separate());
-    //this.heading = align();
     newForward = newForward.add(align());
     newForward = newForward.add(cohere());
     newForward = newForward.unit();
   };
 
   this.getId = ((id) => {
-    return ()=>id;
+    return () => id;
   })(Boid.getNextId());
 
   let getNeighbours = (boids) => {
@@ -150,10 +148,6 @@ FLOCKING.Boid = function ({ forward_in = new Vector(0, 0, 1),
       }
     }
 
-    //neighbours.filter(function (a) {
-    //  return a.d <= detectionRange;
-    //});
-
     neighbours.sort((a, b) => a.d - b.d);
 
     neighbours = neighbours.slice(0, this.maxNeighbours);
@@ -165,10 +159,6 @@ FLOCKING.Boid = function ({ forward_in = new Vector(0, 0, 1),
     let result = new Vector(0, 0, 0);
 
     for (let i = 0; i < neighbours.length; i++) {
-      //if (neighbours[i].d === 0) {
-      //  result = result.add(new Vector(Math.random(), Math.random(), Math.random()));
-      //  countTooClose++;
-      //}else 
       if (neighbours[i].d <= this.minSeparation) {
         result = result.add(neighbours[i].position.divide(neighbours[i].d));
         countTooClose++;
@@ -178,12 +168,8 @@ FLOCKING.Boid = function ({ forward_in = new Vector(0, 0, 1),
     if (countTooClose > 0) {
       result = result.divide(countTooClose);
       result = result.subtract(this.position);
-      //if (result.length() === 0)
-      //  result = forward;
-      //else {
       result = result.unit();
       result = result.negative();
-      //}
     }
     return result;
   };

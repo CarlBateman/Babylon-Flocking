@@ -18,23 +18,30 @@ window.addEventListener('DOMContentLoaded', function () {
     camera.attachControl(canvas, false);
     camera.wheelDeltaPercentage = 0.01;
 
-    var light = new BABYLON.DirectionalLight("Directionallight1", new BABYLON.Vector3(1, -1, 1), scene);
+    var light1 = new BABYLON.DirectionalLight("Directionallight1", new BABYLON.Vector3(1, -1, 1), scene);
+    light1.position = new BABYLON.Vector3(-100, 400, -400);
+    var shadowGenerator = new BABYLON.ShadowGenerator(1024*4, light1);
+    //light1.shadowMaxZ = 130;
+    //light1.shadowMinZ = 10;
+    //shadowGenerator.useContactHardeningShadow = true;
+    //shadowGenerator.contactHardeningLightSizeUVRatio = 0.05;
+    shadowGenerator.setDarkness(0.5);
+    //shadowGenerator.usePoissonSampling = true;
+    shadowGenerator.useBlurExponentialShadowMap = true;
+    shadowGenerator.useKernelBlur = true;
+    shadowGenerator.blurKernel = 16;
     var light2 = new BABYLON.DirectionalLight("Directionallight1", new BABYLON.Vector3(-1, -1, -1), scene);
 
-    var n = 30;
-    for (var i = 0; i < n; i++) {
-      for (var j = 0; j < n; j++) {
-        var gd = BABYLON.MeshBuilder.CreateGround("gd", { width: 4, height: 4, subdivisions: 4, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
-        gd.material = new BABYLON.StandardMaterial("coneMaterial", scene);
-        gd.material.diffuseColor = new BABYLON.Color3(0, 0, 0);
-        gd.material.specularColor = new BABYLON.Color3(0, 0, 0);
-        gd.material.emissiveColor = new BABYLON.Color3(.1, .1, .3);
-        gd.rotation.y = Math.PI / 3;
-        gd.position.x = (-n / 2 + i) * 10;
-        gd.position.z = (-n / 2 + j) * 10;
-        gd.position.y = -5;
-      }
-    }
+    var gd = BABYLON.MeshBuilder.CreateGround("gd", { width: 2000, height: 2000, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+    gd.position.y = -30;
+    gd.material = new BABYLON.StandardMaterial("coneMaterial", scene);
+    gd.material.diffuseTexture = new BABYLON.Texture("background.gif", scene);
+    gd.material.diffuseTexture.uScale = 50;
+    gd.material.diffuseTexture.vScale = 50;
+    gd.material.specularColor = new BABYLON.Color3(.1, .1, .25);
+    gd.receiveShadows = true;
+
+    light2.excludedMeshes.push(gd);
 
     function makeFlatCone() {
       let cone = BABYLON.MeshBuilder.CreateCylinder("cone", { diameterTop: 0, diameterBottom: 1.5, height: 1.5, tessellation: 4, updatable: true }, scene);
@@ -57,119 +64,61 @@ window.addEventListener('DOMContentLoaded', function () {
     }
 
     let coneMaster = makeFlatCone();
-    //makeLabel(coneMaster);
-
-    function makeLabel(parent) {
-      let plane = BABYLON.MeshBuilder.CreatePlane("plane2", { width: 4, height: 4 }, scene);
-      plane.parent = parent.mesh;
-      //plane.boid_id = parent.id;
-      plane.position.z = parent.id & 1 ? -1.5 : 1;
-      plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
-
-      let advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane);
-
-      let textBlock = new BABYLON.GUI.TextBlock("but1", "Some Text");
-      //textBlock.width = 1;
-      textBlock.height = 0.2;
-      //textBlock.resizeToFit = true;
-      textBlock.color = "black";
-      textBlock.fontSize = 50;
-      textBlock.fontFamily = "Arial Narrow";
-      // textblocks have no backgrounds. For that, they are put in a Rectangle container.
-      textBlock.background = "green";
-      // textblocks have no border thickness.  Maybe put inside a Rectangle container, again.
-      //textBlock.thickness = 10;
-
-
-      advancedTexture.addControl(textBlock);
-      //advancedTexture.drawText("QQQ", null, null, "Arial Narrow", "black", 'transparent', true);
-      textBlock.text = "id: " + parent.id;
-      parent.label = textBlock;
-    }
 
     let flock = FLOCKING.Flock();
 
-    let numBoids = 100;
+    let numBoids = 200;
+    let stepX = Math.ceil(Math.sqrt(numBoids));
+    let stepY = Math.ceil(numBoids / stepX);
+    let x = 0, y = 0;
     for (let i = 0; i < numBoids; i++) {
       let boidPos = new BABYLON.Mesh("boid", scene);
-      //boidPos.position.x = i;
-      //boidPos.forward.z = i & 1 ? -1 : 1;
-
       let boidMesh = coneMaster.clone();
       boidMesh.material = new BABYLON.StandardMaterial("coneMaterial", scene);
       boidMesh.material.diffuseColor = new BABYLON.Color3(i / numBoids, Math.random(), 1 - i / numBoids);
       boidMesh.parent = boidPos;
-      //cones.push(boidMesh);
+
+      shadowGenerator.addShadowCaster(boidMesh);
+
+      // offset mesh from centre
+      boidMesh.position.z = -.75;
 
       var bd = FLOCKING.Boid();
       bd.position.x = i;
-      //bd.forward.z = i & 1 ? -1 : 1;
-
       bd.mesh = boidPos;
-      //bd.position.x = i - 4;
-      //bd.forward.z = i & 1 ? -1 : 1;
 
-      bd.position.x = (Math.random() - .5) * numBoids / 1;
-      bd.position.z = (Math.random() - .5) * numBoids / 1;
-      if (i === 0) {
-        bd.position.x = -1;//(Math.random() - .5) * numBoids / 1;
-        bd.position.z = -1;//(Math.random() - .5) * numBoids / 1;
-        //bd.position.y = (Math.random() - .5) * numBoids;
-      }
-      if (i === 1) {
-        bd.position.x = 1;
-        bd.position.z = -1;
-      }
-      if (i === 2) {
-        bd.position.x = -1;
-        bd.position.z = 1;
-      }
-      if (i === 3) {
-        bd.position.x = 1;
-        bd.position.z = 1;
-      }
+      x = i % stepX;
+      y = Math.floor(i / stepY);
 
-
-
-
-
+      bd.position.x = x * 4 + (.5-Math.random()) *2;
+      bd.position.z = y * 4 + Math.random();
 
       flock.addBoid(bd);
-
-      //makeLabel(bd);
     }
 
-    let dt = 0.1;//clock.getDelta() / 1000;
     coneMaster.isVisible = false;
 
-    //let boidCentre = new BABYLON.Mesh("boid", scene);
-    //camera.setTarget(boidCentre);
     camera.setTarget(flock.boids[Math.ceil(numBoids / 2)].mesh);
 
-
-    document.onkeyup = function () {
-      dt = 0.1;
-    };
-
-    var origin = new Vector(0, 0, 0);
     scene.registerBeforeRender(function () {
+      let dt = clock.getDelta() / 100;//0.1;//
 
       if (dt > 0)
         flock.update(dt);
-      //dt = 0;
 
-      //boidCentre.position.x = flock.bounds.centre.x;
-      //boidCentre.position.y = flock.bounds.centre.y;
-      //boidCentre.position.z = flock.bounds.centre.z;
-
-      let scale = flock.bounds.centre.subtract(flock.bounds.lower);
+      let scale = flock.bounds.upper.subtract(flock.bounds.lower);
       let dist = scale.length();
       dist = dist < 10 ? 10 : dist;
+      dist = dist >50 ? 50 : dist;
 
       let pos = camera.position.clone();
-      pos.y = dist * 2;
+      pos.y = dist * 3;
       //camera.setPosition(pos);
       camera.radius = dist * 1.5;
+      camera.position.x = flock.bounds.centre.x + 100;
+
+      //camera.setTarget(new BABYLON.Vector3(flock.bounds.centre.x, flock.bounds.centre.y, flock.bounds.centre.z));
+
 
       for (let i = 0; i < flock.boids.length; i++) {
         let bd = flock.boids[i];
@@ -187,8 +136,6 @@ window.addEventListener('DOMContentLoaded', function () {
 
     return scene;
   };
-
-  var scene = createScene();
 
   engine.runRenderLoop(function () {
     scene.render();
@@ -208,4 +155,6 @@ window.addEventListener('DOMContentLoaded', function () {
       return delta;
     }
   };
+
+  var scene = createScene();
 });
