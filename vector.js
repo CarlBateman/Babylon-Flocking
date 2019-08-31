@@ -40,7 +40,7 @@ Vector.prototype = {
       this.x * v.y - this.y * v.x
     );
   },
-  length: function() {
+  length: function () {
     return Math.sqrt(this.dot(this));
   },
   unit: function() {
@@ -67,9 +67,32 @@ Vector.prototype = {
   clone: function() {
     return new Vector(this.x, this.y, this.z);
   },
-  init: function(x, y, z) {
+  init: function (x, y, z) {
     this.x = x; this.y = y; this.z = z;
     return this;
+  },
+  set: function (x, y, z) {
+    if (x instanceof Vector)
+    { this.x = x.x; this.y = x.y; this.z = x.z; }
+    else
+    { this.x = x; this.y = y; this.z = z; }
+    return this;
+  },
+  zero: function () {
+    this.x = 0; this.y = 0; this.z = 0;
+    return this;
+  },
+  limit: function (limit) {
+    if (this.length() > limit) {
+      return this.unit().multiply(limit);
+    }
+    return this;
+  },
+  lengthSq: function () {
+    return this.dot(this);
+  },
+  setMag: function (mag) {
+    return this.unit().multiply(mag);
   }
 };
 

@@ -39,7 +39,7 @@ window.addEventListener('DOMContentLoaded', function () {
     gd.material.diffuseTexture.uScale = 50;
     gd.material.diffuseTexture.vScale = 50;
     gd.material.specularColor = new BABYLON.Color3(.1, .1, .25);
-    gd.receiveShadows = true;
+    //gd.receiveShadows = true;
 
     light2.excludedMeshes.push(gd);
 
@@ -70,6 +70,7 @@ window.addEventListener('DOMContentLoaded', function () {
     let numBoids = 200;
     let stepX = Math.ceil(Math.sqrt(numBoids));
     let stepY = Math.ceil(numBoids / stepX);
+
     let x = 0, y = 0;
     for (let i = 0; i < numBoids; i++) {
       let boidPos = new BABYLON.Mesh("boid", scene);
@@ -84,54 +85,62 @@ window.addEventListener('DOMContentLoaded', function () {
       boidMesh.position.z = -.75;
 
       var bd = FLOCKING.Boid();
-      bd.position.x = i;
       bd.mesh = boidPos;
 
-      x = i % stepX;
-      y = Math.floor(i / stepY);
+      x = i % stepX - (stepX/2);
+      y = Math.floor(i / stepY) - (stepY/2);
 
-      bd.position.x = x * 4 + (.5-Math.random()) *2;
-      bd.position.z = y * 4 + Math.random();
+      let randomJitter = 4;
+      bd.position.x = x * 8 + (.5 - Math.random()) * randomJitter;
+      bd.position.z = y * 8 + (.5 - Math.random()) * randomJitter;
+      //bd.position.x -= 50;
+      //bd.position.z -= 50;
+
+      //bd.position.x = x * 4 * randomJitter;
+      //bd.position.z = y * 4 * randomJitter;
+      let angle = Math.random() * Math.PI * 2;
+      bd.velocity.x = Math.cos(angle);
+      bd.velocity.z = Math.sin(angle);
+      //bd.velocity = bd.velocity.unit();
 
       flock.addBoid(bd);
     }
 
     coneMaster.isVisible = false;
 
-    camera.setTarget(flock.boids[Math.ceil(numBoids / 2)].mesh);
+    //camera.setTarget(flock.boids[Math.ceil(numBoids / 2)].mesh);
 
     scene.registerBeforeRender(function () {
       let dt = clock.getDelta() / 100;//0.1;//
 
+      if (dt > 0.5)
+        dt = .1;
       if (dt > 0)
         flock.update(dt);
 
-      let scale = flock.bounds.upper.subtract(flock.bounds.lower);
-      let dist = scale.length();
-      dist = dist < 10 ? 10 : dist;
-      dist = dist >50 ? 50 : dist;
-
-      let pos = camera.position.clone();
-      pos.y = dist * 3;
-      //camera.setPosition(pos);
-      camera.radius = dist * 1.5;
-      camera.position.x = flock.bounds.centre.x + 100;
+      // track flock motion with camera
+      if (false) {
+        let scale = flock.bounds.upper.subtract(flock.bounds.lower);
+        let dist = scale.length();
+        dist = dist < 10 ? 30 : dist;
+        dist = dist > 50 ? 50 : dist;
+        //dist = 10;
+        let pos = camera.position.clone();
+        pos.y = dist * 3;
+        camera.radius = dist * 1.5;
+        camera.position.x = flock.bounds.centre.x + 100;
+      }
 
       //camera.setTarget(new BABYLON.Vector3(flock.bounds.centre.x, flock.bounds.centre.y, flock.bounds.centre.z));
 
-
+      // update position and orientation of meshes
       for (let i = 0; i < flock.boids.length; i++) {
         let bd = flock.boids[i];
         bd.mesh.setDirection(bd.heading);
         bd.mesh.position.x = bd.position.x;
         bd.mesh.position.y = bd.position.y;
         bd.mesh.position.z = bd.position.z;
-
-        if (bd.label !== undefined) {
-          bd.label.text = "id: " + bd.id + "\r\n" + bd.forward.x.toFixed(2) + ", " + bd.forward.z.toFixed(2);
-        }
       }
-
     });
 
     return scene;

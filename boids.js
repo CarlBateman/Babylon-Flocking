@@ -94,12 +94,12 @@ function makeBoid({ forward = new Vector(0, 0, 1), position = new Vector(10, 0, 
     newForward = newForward.add(separate());
     newForward = newForward.add(align());
     newForward = newForward.add(cohere());
-    newForward = newForward.unit();
+    newForward = newForward.limit(1);
   }
 
   function update(dt) {
     this.position = this.position.add(newForward.multiply(speed * dt));
-    this.forward = newForward;
+    this.forward = this.forward.add(newForward).limit(1);
   }
 
   function separate() {
@@ -111,8 +111,10 @@ function makeBoid({ forward = new Vector(0, 0, 1), position = new Vector(10, 0, 
       //  result = result.add(new Vector(Math.random(), Math.random(), Math.random()));
       //  countTooClose++;
       //}else 
-      if (neighbours[i].d <= minSeparation) {
-        result = result.add(neighbours[i].position.divide(neighbours[i].d));
+      let d = neighbours[i].d;
+      if (d < minSeparation) {
+        let diff = self.position.subtract(neighbours[i].position.divide(d));
+        result = result.add(diff);
         countTooClose++;
       }
     }
@@ -123,7 +125,7 @@ function makeBoid({ forward = new Vector(0, 0, 1), position = new Vector(10, 0, 
       //if (result.length() === 0)
       //  result = self.forward;
       //else {
-        result = result.unit();
+        result = result.limit(1);
         result = result.negative();
       //}
     }
@@ -137,7 +139,7 @@ function makeBoid({ forward = new Vector(0, 0, 1), position = new Vector(10, 0, 
       result = result.add(neighbours[i].forward);
     }
 
-    result = result.unit();
+    result = result.limit(1);
     result = result.add(self.forward);
 
     if (result.length() === 0) {
@@ -151,15 +153,15 @@ function makeBoid({ forward = new Vector(0, 0, 1), position = new Vector(10, 0, 
   function cohere() {
     let countTooFar = 0;
     let result = new Vector(0, 0, 0);
-    for (let i = 0; i < neighbours.length; i++) {
-      if (self.position.subtract(neighbours[i]) > maxSeparation) {
-      result = result.add(neighbours[i].position);
-        countTooFar++;
-      }
-    }
+    //for (let i = 0; i < neighbours.length; i++) {
+    //  //if (neighbours[i].d < 100) {
+    //  result = result.add(neighbours[i].position);
+    //    countTooFar++;
+    //  //}
+    //}
     result = result.divide(countTooFar);
     result = result.subtract(self.position);
-    result = result.unit();
+    result = result.limit(1);
     return result;
   }
 
