@@ -1,4 +1,41 @@
-﻿Tidy code
-Map to sphere
+﻿Shadows
+
+pause/step
+
+bound
+
+mouse
+
+
+avoid
+flee
+hunt
+target
+
+
+Tidy test code
+Tidy Flock code
+
+
+Map to sphere, cylinder
+3D
+
+
+Tag/colour
+Target
+Orbit
+Flow field
+Border
+Wrap
+Optimise
+
+Mass
+Idle
+
 
 Versions for PlayCanvas, Three.js, Babylon.js, etc.
+
+Debugging
+	show decisions (heading, neighbours, etc.)
+
+Optimise

@@ -1,6 +1,73 @@
 ﻿// see also C:\Users\Carl\Dropbox\Workshop\webgl-workshop-site-projects\webglworkshop\root\projects\flock
 // and C:\Users\Carl\Documents\WIP\WebGLworkshop\root\projects\Flock
 window.addEventListener('DOMContentLoaded', function () {
+  function properties(value, min, max, step, name) {
+    if (arguments.length === 1)
+      return value;
+
+    return { value, min, max, step, name, default: value };
+  }
+  let options = {
+    numberOfBoids: properties(200, 1, 500, 1, "№ of boids"),
+    pause: properties(false),
+    shadows: properties(true),
+    //pause: properties(false),
+    maxSpeed: properties(2, 0, 50, .1),
+    maxAcceleration: properties(.1, 0, 10, .1),
+    minSeparation: properties(3, 0, 100, .5),
+    maxSeparation: properties(10, 1, 100, .5),
+    cohesion: {
+      folder: true,
+      neighbourRadius: properties(10, 0, 50, 1),
+      use: properties(true),
+      factor: properties(1, .1, 10, .1)
+    },
+    align: {
+      folder: true,
+      neighbourRadius: properties(20, 0, 50, 1),
+      use: properties(true),
+      factor: properties(1, .1, 10, .1)
+    },
+    separate: {
+      folder: true,
+      neighbourRadius: properties(8, 0, 50, 1),
+      use: properties(true),
+      factor: properties(1, .1, 10, .1)
+    }
+  };
+
+  let gui = new dat.GUI();
+
+  options.restoreDefaults = function (options) {
+    gui.__controllers.forEach(controller => controller.setValue(controller.initialValue));
+  };
+
+  gui.add(options, "restoreDefaults");
+
+  setupGUI(options, gui);
+
+  function setupGUI(options, gui) {
+    let keys = Object.keys(options);
+    for (var i = 0; i < keys.length; i++) {
+      let key = keys[i];
+      if (key === "folder")
+        continue;
+
+      let option = options[key];
+
+      if (option.folder === undefined) {
+        if (option.min === undefined) {
+          gui.add(options, key);
+        } else {
+          gui.add(option, "value", option.min, option.max).name(option.name === undefined ? key : option.name);
+        }
+      } else {
+        let folder = gui.addFolder(key);
+        setupGUI(option, folder);
+      }
+    }
+  }
+
   var canvas = document.getElementById('renderCanvas');
   var engine = new BABYLON.Engine(canvas, true);
 
@@ -39,7 +106,7 @@ window.addEventListener('DOMContentLoaded', function () {
     gd.material.diffuseTexture.uScale = 50;
     gd.material.diffuseTexture.vScale = 50;
     gd.material.specularColor = new BABYLON.Color3(.1, .1, .25);
-    //gd.receiveShadows = true;
+    gd.receiveShadows = true;
 
     light2.excludedMeshes.push(gd);
 
@@ -67,7 +134,7 @@ window.addEventListener('DOMContentLoaded', function () {
 
     let flock = FLOCKING.Flock();
 
-    let numBoids = 200;
+    let numBoids = 500;
     let stepX = Math.ceil(Math.sqrt(numBoids));
     let stepY = Math.ceil(numBoids / stepX);
 
@@ -110,12 +177,48 @@ window.addEventListener('DOMContentLoaded', function () {
 
     //camera.setTarget(flock.boids[Math.ceil(numBoids / 2)].mesh);
 
+    function updateBoidProperties(boid, options) {
+      boid.maxSpeed = options.maxSpeed.value;
+      boid.maxAcceleration = options.maxAcceleration.value;
+      boid.minSeparation = options.minSeparation.value;
+      boid.maxSeparation = options.maxSeparation.value;
+
+      if (options.cohesion.use) {
+        boid.cohereNeighbourRadius = options.cohesion.neighbourRadius.value;
+        boid.cohereFactor = options.cohesion.factor.value;
+      } else {
+        boid.cohereFactor = 0;
+      }
+
+      if (options.align.use) {
+        boid.alignFactor = options.align.factor.value;
+        boid.alignNeighbourRadius = options.align.neighbourRadius.value;
+      } else {
+        boid.alignFactor = 0;
+      }
+
+      if (options.separate.use) {
+        boid.separateNeighbourRadius = options.separate.neighbourRadius.value;
+        boid.separateFactor = options.separate.factor.value;
+      } else {
+        boid.separateFactor = 0;
+      }
+    }
+
     scene.registerBeforeRender(function () {
+      gd.receiveShadows = options.shadows;
+
+      let boidCount = Math.ceil(options.numberOfBoids.value);
+      flock.boidCount = boidCount;
+      for (var i = 0; i < boidCount; i++) {
+        updateBoidProperties(flock.boids[i], options);
+      }
+
       let dt = clock.getDelta() / 100;//0.1;//
 
       if (dt > 0.5)
         dt = .1;
-      if (dt > 0)
+      if (!options.pause)
         flock.update(dt);
 
       // track flock motion with camera
@@ -136,10 +239,15 @@ window.addEventListener('DOMContentLoaded', function () {
       // update position and orientation of meshes
       for (let i = 0; i < flock.boids.length; i++) {
         let bd = flock.boids[i];
-        bd.mesh.setDirection(bd.heading);
-        bd.mesh.position.x = bd.position.x;
-        bd.mesh.position.y = bd.position.y;
-        bd.mesh.position.z = bd.position.z;
+        if (i >= boidCount) {
+          bd.mesh.getChildMeshes(false)[0].visibility = false;
+        } else {
+          bd.mesh.setDirection(bd.heading);
+          bd.mesh.position.x = bd.position.x;
+          bd.mesh.position.y = bd.position.y;
+          bd.mesh.position.z = bd.position.z;
+          bd.mesh.getChildMeshes(false)[0].visibility = true;
+        }
       }
     });
 

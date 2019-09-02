@@ -10,6 +10,8 @@ FLOCKING.Flock = function (numBoids = 0) {
   }
 
   this.boids = [];
+  this.boidCount = 0;
+
   this.bounds = { lower: new Vector(), upper: new Vector(), centre: new Vector() };
 
   let Boid = FLOCKING.Boid;
@@ -20,6 +22,7 @@ FLOCKING.Flock = function (numBoids = 0) {
     } else {
       this.boids.push(Boid());
     }
+    this.boidCount = this.boids.length;
   };
 
   this.addBoids = function (nboids = 1) {
@@ -29,6 +32,7 @@ FLOCKING.Flock = function (numBoids = 0) {
       for (var i = 0; i < nboids; i++) {
         this.boids.push(Boid());
       }
+    this.boidCount = this.boids.length;
   };
   this.addBoids(numBoids);
 
@@ -45,7 +49,10 @@ FLOCKING.Flock = function (numBoids = 0) {
 
     let boids = [];
 
-    for (let i = 0; i < this.boids.length; i++) {
+    if (this.boidCount > this.boids.length)
+      this.boidCount = this.boids.length;
+
+    for (let i = 0; i < this.boidCount; i++) {
       bd = this.boids[i];
 
       //// neighbour filter on range
@@ -71,7 +78,7 @@ FLOCKING.Flock = function (numBoids = 0) {
     this.bounds.lower = lower;
     this.bounds.centre = upper.add(lower).divide(2);
 
-    for (let i = 0; i < this.boids.length; i++) {
+    for (let i = 0; i < this.boidCount; i++) {
       bd = this.boids[i];
       //let tag = Math.ceil((bd.position.x + .5) / 3);
       //let bds = boids[tag];
@@ -90,6 +97,7 @@ FLOCKING.Flock = function (numBoids = 0) {
   this.removeBoids = function (numBoids) {
     let start = this.boids.length - numBoids;
     this.boids.splice(start, numBoids);
+    this.boidCount = this.boids.length;
   };
 };
 
@@ -114,18 +122,21 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
     });
   }
 
+  this.mesh = mesh;
   this.forward = velocity.unit();
   this.velocity = velocity;
   this.position = position;
-  this.maxSpeed = maxSpeed;// * 1.5;
+  this.maxSpeed = maxSpeed;
   this.maxAcceleration = 0.1;
-  this.mesh = mesh;
   this.minSeparation = minSeparation;
   this.maxSeparation = maxSeparation;
+  this.separateNeighbourRadius = 8;
+  this.alignNeighbourRadius = 20;
+  this.cohereNeighbourRadius = 10;
   this.neighbourRadius = 50;
   this.cohereFactor = 1;
   this.alignFactor = 1;
-  this.seperateFactor = 1;
+  this.separateFactor = 1;
   this.radius = 1;
 
   this.heading = new Vector();
@@ -164,7 +175,7 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
     }
 
     // Update using Euler method
-    this.velocity = this.velocity.add(acceleration.multiply(dt)).limit(1);
+    this.velocity = this.velocity.add(acceleration.multiply(dt)).limit(this.maxSpeed);
     this.position = this.position.add(this.velocity.multiply(dt));
     this.heading = this.velocity;
 
@@ -174,9 +185,9 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
     getNeighbours(boids);
     //acceleration = this.velocity.multiply(this.maxSpeed);
     acceleration.zero();
-    acceleration = acceleration.add(align());
-    acceleration = acceleration.add(separate());
-    acceleration = acceleration.add(cohere());
+    acceleration = acceleration.add(align().multiply(this.alignFactor));
+    acceleration = acceleration.add(separate().multiply(this.separateFactor));
+    acceleration = acceleration.add(cohere().multiply(this.cohereFactor));
     acceleration = acceleration.limit(this.maxAcceleration);
     //acceleration = acceleration.add(this.velocity.multiply(this.maxSpeed * dt));
     //acceleration = acceleration.unit();
@@ -200,7 +211,7 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
     let countAligned = 0;
     let result = new Vector();
     for (let i = 0; i < neighbours.length; i++) {
-      if (neighbours[i].d < 10) {
+      if (neighbours[i].d < this.cohereNeighbourRadius) {
         result = result.add(neighbours[i].velocity);
         countAligned++;
       }
@@ -221,7 +232,7 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
     let result = new Vector();
     for (let i = 0; i < neighbours.length; i++) {
       //if (neighbours[i].d > this.maxSeparation && neighbours[i].d > 0) {
-      if (neighbours[i].d < 20) {
+      if (neighbours[i].d < this.alignNeighbourRadius && neighbours[i].d > this.radius) {
         result = result.add(neighbours[i].position);
         countTooFar++;
       }
@@ -246,7 +257,31 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
     for (let i = 0; i < neighbours.length; i++) {
       let d = neighbours[i].d;
       let pos = neighbours[i].position;
-      if (d < 8 && d>0) {
+      if (d < this.separateNeighbourRadius && d > 0) {
+        let diff = this.position.subtract(pos).divide(d).unit();
+        result = result.add(diff);
+        countTooClose++;
+      }
+    }
+    if (countTooClose > 0) {
+      result = result.divide(countTooClose);
+      // direction to centre should be relative from current position
+      result = result.setMag(this.maxSpeed);
+      result = result.subtract(this.velocity);
+      result = result.limit(this.maxSpeed);
+      //result = result.negative();
+    }
+    return result;
+  };
+
+  let border = () => {
+    let countTooClose = 0;
+    let result = new Vector();
+
+    for (let i = 0; i < neighbours.length; i++) {
+      let d = neighbours[i].d;
+      let pos = neighbours[i].position;
+      if (d < this.separateNeighbourRadius && d > 0) {
         let diff = this.position.subtract(pos).divide(d).unit();
         result = result.add(diff);
         countTooClose++;
