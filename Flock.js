@@ -11,6 +11,7 @@ FLOCKING.Flock = function (numBoids = 0) {
 
   this.boids = [];
   this.boidCount = 0;
+  this.limits = [{ p1: new Vector(-50, -50, -50), p2: new Vector(50, 50, 50) }];
 
   this.bounds = { lower: new Vector(), upper: new Vector(), centre: new Vector() };
 
@@ -71,7 +72,7 @@ FLOCKING.Flock = function (numBoids = 0) {
       upper.x = bd.position.x > upper.x ? bd.position.x : upper.x;
       upper.z = bd.position.z > upper.z ? bd.position.z : upper.z;
 
-      bd.steer(dt, this.boids);
+      bd.steer(dt, this.boids, this.boidCount, this.limits[0]);
     }
 
     this.bounds.upper = upper;
@@ -138,6 +139,10 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
   this.alignFactor = 1;
   this.separateFactor = 1;
   this.radius = 1;
+  this.groupId = 0;
+  this.racism = 0;
+  this.wrap = false;
+  this.bound = true;
 
   this.heading = new Vector();
   // private
@@ -149,54 +154,33 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
   })(Boid.getNextId());
 
   this.update = function (dt) {
-    // weight
-    // limits
-    // targets
-    // obstacles
-    // racism
-
-    // lonely (boid has no neighbours)
-    // boundary
-
-    // dat gui
-
-    let pos = this.position;
-    if (false) {
-      if (pos.x > 50) acceleration.x = -Math.abs(acceleration.x);
-      if (pos.x < -50) acceleration.x = Math.abs(acceleration.x);
-      if (pos.z > 50) acceleration.z = -Math.abs(acceleration.z);
-      if (pos.z < -50) acceleration.z = Math.abs(acceleration.z);
-      acceleration.limit(1);
-    } else {
-      if (pos.x > 50) pos.x -= 100;
-      if (pos.x < -50) pos.x += 100;
-      if (pos.z > 50) pos.z -= 100;
-      if (pos.z < -50) pos.z += 100;
-    }
-
     // Update using Euler method
-    this.velocity = this.velocity.add(acceleration.multiply(dt)).limit(this.maxSpeed);
     this.position = this.position.add(this.velocity.multiply(dt));
-    this.heading = this.velocity;
+    this.velocity = this.velocity.add(acceleration.multiply(dt)).limit(this.maxSpeed);
+    if (this.velocity.length() < 0) {
+      this.velocity = this.velocity.setMag(1);
 
+    }
+    this.heading = this.velocity;
   };
 
-  this.steer = function (dt, boids) {
-    getNeighbours(boids);
-    //acceleration = this.velocity.multiply(this.maxSpeed);
+  this.steer = function (dt, boids, boidCount, limits) {
+    getNeighbours(boids, boidCount);
     acceleration.zero();
     acceleration = acceleration.add(align().multiply(this.alignFactor));
     acceleration = acceleration.add(separate().multiply(this.separateFactor));
     acceleration = acceleration.add(cohere().multiply(this.cohereFactor));
     acceleration = acceleration.limit(this.maxAcceleration);
-    //acceleration = acceleration.add(this.velocity.multiply(this.maxSpeed * dt));
-    //acceleration = acceleration.unit();
+    if (this.bound)
+      acceleration = acceleration.add(limit(limits).multiply(.1));
+    if (this.wrap)
+      wrap(limits);
   };
 
-  let getNeighbours = (boids) => {
+  let getNeighbours = (boids, boidCount) => {
     neighbours = [];
     // todo - only process boids in front, ignoring boids behind
-    for (var i = 0; i < boids.length; i++) {
+    for (var i = 0; i < boidCount; i++) {
       if (this.getId() !== boids[i].getId()) {
         let d = this.position.subtract(boids[i].position).length();
         if (d < 30)
@@ -207,13 +191,31 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
 
   };
 
+  let wrap = (limits) => {
+    let pos = this.position;
+    if (pos.x > limits.p2.x) pos.x += limits.p1.x * 2;
+    if (pos.x < limits.p1.x) pos.x += limits.p2.x * 2;
+
+    if (pos.y > limits.p2.y) pos.y += limits.p1.y * 2;
+    if (pos.y < limits.p1.y) pos.y += limits.p2.y * 2;
+
+    if (pos.z > limits.p2.z) pos.z += limits.p1.z * 2;
+    if (pos.z < limits.p1.z) pos.z += limits.p2.z * 2;
+  };
+
   let align = () => {
     let countAligned = 0;
     let result = new Vector();
+
+    let countLimit = 10;
+
     for (let i = 0; i < neighbours.length; i++) {
       if (neighbours[i].d < this.cohereNeighbourRadius) {
         result = result.add(neighbours[i].velocity);
         countAligned++;
+      }
+      if (countAligned > countLimit) {
+        break;
       }
     }
 
@@ -222,7 +224,9 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
       result = result.setMag(this.maxSpeed);
       // steering force
       result = result.subtract(this.velocity);
-      result = result.limit(this.maxSpeed);
+      result = result.limit(this.maxAcceleration);
+    } else {
+      result = this.velocity.multiply(2);
     }
     return result;
   };
@@ -230,22 +234,28 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
   let cohere = () => {
     let countTooFar = 0;
     let result = new Vector();
+
+    let countLimit = 10;
+
     for (let i = 0; i < neighbours.length; i++) {
       //if (neighbours[i].d > this.maxSeparation && neighbours[i].d > 0) {
       if (neighbours[i].d < this.alignNeighbourRadius && neighbours[i].d > this.radius) {
         result = result.add(neighbours[i].position);
         countTooFar++;
       }
+      if (countTooFar > countLimit) {
+        break;
+      }
     }
     if (countTooFar > 0) {
+      // target is average
       result = result.divide(countTooFar);
-      // result is absolute
-      // make relative to this boid
+      // vector to target
       result = result.subtract(this.position);
       result = result.setMag(this.maxSpeed);
       // steering force
       result = result.subtract(this.velocity);
-      result = result.limit(this.maxSpeed);
+      result = result.limit(this.maxAcceleration);
     }
     return result;
   };
@@ -254,47 +264,53 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
     let countTooClose = 0;
     let result = new Vector();
 
+    let countLimit = 10;
+
     for (let i = 0; i < neighbours.length; i++) {
       let d = neighbours[i].d;
       let pos = neighbours[i].position;
       if (d < this.separateNeighbourRadius && d > 0) {
-        let diff = this.position.subtract(pos).divide(d).unit();
+        let diff = this.position.subtract(pos).unit().divide(d*d);
         result = result.add(diff);
         countTooClose++;
       }
+      if (countTooClose > countLimit) {
+        break;
+      }
     }
+
     if (countTooClose > 0) {
       result = result.divide(countTooClose);
       // direction to centre should be relative from current position
       result = result.setMag(this.maxSpeed);
       result = result.subtract(this.velocity);
-      result = result.limit(this.maxSpeed);
+      result = result.limit(this.maxAcceleration);
       //result = result.negative();
     }
     return result;
   };
 
-  let border = () => {
-    let countTooClose = 0;
+  let limit = (limits) => {
+    // distance from boundary
     let result = new Vector();
+    if (this.position.x < limits.p1.x) {
+      result.x = limits.p1.x - this.position.x;
+    } else if (this.position.x > limits.p2.x) {
+      result.x = limits.p2.x - this.position.x;
+    }
 
-    for (let i = 0; i < neighbours.length; i++) {
-      let d = neighbours[i].d;
-      let pos = neighbours[i].position;
-      if (d < this.separateNeighbourRadius && d > 0) {
-        let diff = this.position.subtract(pos).divide(d).unit();
-        result = result.add(diff);
-        countTooClose++;
-      }
+    if (this.position.y < limits.p1.y) {
+      result.y = limits.p1.y - this.position.y;
+    } else if (this.position.y > limits.p2.y) {
+      result.y = limits.p2.y - this.position.y;
     }
-    if (countTooClose > 0) {
-      result = result.divide(countTooClose);
-      // direction to centre should be relative from current position
-      result = result.setMag(this.maxSpeed);
-      result = result.subtract(this.velocity);
-      result = result.limit(this.maxSpeed);
-      //result = result.negative();
+
+    if (this.position.z < limits.p1.z) {
+      result.z = limits.p1.z - this.position.z;
+    } else if (this.position.z > limits.p2.z) {
+      result.z = limits.p2.z - this.position.z;
     }
+
     return result;
   };
 };

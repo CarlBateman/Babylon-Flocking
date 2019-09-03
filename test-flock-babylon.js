@@ -10,10 +10,10 @@ window.addEventListener('DOMContentLoaded', function () {
   let options = {
     numberOfBoids: properties(200, 1, 500, 1, "№ of boids"),
     pause: properties(false),
-    shadows: properties(true),
+    shadows: properties(false),
     //pause: properties(false),
     maxSpeed: properties(2, 0, 50, .1),
-    maxAcceleration: properties(.1, 0, 10, .1),
+    maxAcceleration: properties(.2, 0, 10, .1),
     minSeparation: properties(3, 0, 100, .5),
     maxSeparation: properties(10, 1, 100, .5),
     cohesion: {
@@ -140,10 +140,18 @@ window.addEventListener('DOMContentLoaded', function () {
 
     let x = 0, y = 0;
     for (let i = 0; i < numBoids; i++) {
+      let groupId = i % 3;
+
       let boidPos = new BABYLON.Mesh("boid", scene);
       let boidMesh = coneMaster.clone();
       boidMesh.material = new BABYLON.StandardMaterial("coneMaterial", scene);
-      boidMesh.material.diffuseColor = new BABYLON.Color3(i / numBoids, Math.random(), 1 - i / numBoids);
+      //boidMesh.material.diffuseColor = new BABYLON.Color3(i / numBoids, Math.random(), 1 - i / numBoids);
+
+      let r = groupId === 0? 1 : 0.25;
+      let g = groupId === 1? 1 : 0.25;
+      let b = groupId === 2? 1 : 0.25;
+
+      boidMesh.material.diffuseColor = new BABYLON.Color3(r,g,b);
       boidMesh.parent = boidPos;
 
       shadowGenerator.addShadowCaster(boidMesh);
@@ -152,14 +160,15 @@ window.addEventListener('DOMContentLoaded', function () {
       boidMesh.position.z = -.75;
 
       var bd = FLOCKING.Boid();
+      bd.groupId = groupId;
       bd.mesh = boidPos;
 
       x = i % stepX - (stepX/2);
       y = Math.floor(i / stepY) - (stepY/2);
 
-      let randomJitter = 4;
-      bd.position.x = x * 8 + (.5 - Math.random()) * randomJitter;
-      bd.position.z = y * 8 + (.5 - Math.random()) * randomJitter;
+      let randomJitter = 2;
+      bd.position.x = x * 4 + (.5 - Math.random()) * randomJitter;
+      bd.position.z = y * 4 + (.5 - Math.random()) * randomJitter;
       //bd.position.x -= 50;
       //bd.position.z -= 50;
 

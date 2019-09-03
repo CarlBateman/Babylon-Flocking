@@ -1,16 +1,36 @@
-﻿Shadows
-
-pause/step
-
-bound
-
-mouse
-
-
+﻿weight
+targets
+obstacles
+racism
+Idle
+Tag/colour
+Target
+Orbit
+Flow field
 avoid
 flee
 hunt
-target
+
+
+names for
+	cohere/cohesion
+	separate
+	align
+
+
+
+NAME CONSISTENCY
+	boundary
+	limits
+	bounds
+	bound
+and control the above
+
+2D/3D
+
+
+mouse
+
 
 
 Tidy test code
@@ -18,20 +38,6 @@ Tidy Flock code
 
 
 Map to sphere, cylinder
-3D
-
-
-Tag/colour
-Target
-Orbit
-Flow field
-Border
-Wrap
-Optimise
-
-Mass
-Idle
-
 
 Versions for PlayCanvas, Three.js, Babylon.js, etc.
 
