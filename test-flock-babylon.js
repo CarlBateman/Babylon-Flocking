@@ -16,6 +16,7 @@ window.addEventListener('DOMContentLoaded', function () {
     maxAcceleration: properties(.2, 0, 10, .1),
     minSeparation: properties(3, 0, 100, .5),
     maxSeparation: properties(10, 1, 100, .5),
+    mix: properties(0, 0, 1, .05),
     cohesion: {
       folder: true,
       neighbourRadius: properties(10, 0, 50, 1),
@@ -191,6 +192,7 @@ window.addEventListener('DOMContentLoaded', function () {
       boid.maxAcceleration = options.maxAcceleration.value;
       boid.minSeparation = options.minSeparation.value;
       boid.maxSeparation = options.maxSeparation.value;
+      boid.mix = options.mix.value;
 
       if (options.cohesion.use) {
         boid.cohereNeighbourRadius = options.cohesion.neighbourRadius.value;

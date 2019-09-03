@@ -1,7 +1,7 @@
 ﻿weight
 targets
 obstacles
-racism
+mix
 Idle
 Tag/colour
 Target
@@ -11,6 +11,7 @@ avoid
 flee
 hunt
 
+show/process n number of boids
 
 names for
 	cohere/cohesion
