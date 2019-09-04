@@ -12,40 +12,40 @@ window.addEventListener('DOMContentLoaded', function () {
     pause: properties(false),
     shadows: properties(false),
     //pause: properties(false),
-    maxSpeed: properties(2, 0, 50, .1),
+    maxSpeed: properties(2, 0.1, 50, .1),
     maxAcceleration: properties(.2, 0, 10, .1),
-    minSeparation: properties(3, 0, 100, .5),
-    maxSeparation: properties(10, 1, 100, .5),
+    //minSeparation: properties(3, 0, 100, .5),
+    //maxSeparation: properties(10, 1, 100, .5),
     mix: properties(0, 0, 1, .05),
     cohesion: {
       folder: true,
       neighbourRadius: properties(10, 0, 50, 1),
       use: properties(true),
-      factor: properties(1, .1, 10, .1)
+      strength: properties(1, .1, 10, .1)
     },
     align: {
       folder: true,
       neighbourRadius: properties(20, 0, 50, 1),
       use: properties(true),
-      factor: properties(1, .1, 10, .1)
+      strength: properties(1, .1, 10, .1)
     },
     separate: {
       folder: true,
       neighbourRadius: properties(8, 0, 50, 1),
       use: properties(true),
-      factor: properties(1, .1, 10, .1)
+      strength: properties(1, .1, 10, .1)
     }
   };
 
   let gui = new dat.GUI();
+
+  setupGUI(options, gui);
 
   options.restoreDefaults = function (options) {
     gui.__controllers.forEach(controller => controller.setValue(controller.initialValue));
   };
 
   gui.add(options, "restoreDefaults");
-
-  setupGUI(options, gui);
 
   function setupGUI(options, gui) {
     let keys = Object.keys(options);
@@ -85,6 +85,7 @@ window.addEventListener('DOMContentLoaded', function () {
     camera.alpha = Math.PI * 1.5;
     camera.attachControl(canvas, false);
     camera.wheelDeltaPercentage = 0.01;
+    camera.panningSensibility = 100;
 
     var light1 = new BABYLON.DirectionalLight("Directionallight1", new BABYLON.Vector3(1, -1, 1), scene);
     light1.position = new BABYLON.Vector3(-100, 400, -400);
@@ -101,7 +102,7 @@ window.addEventListener('DOMContentLoaded', function () {
     var light2 = new BABYLON.DirectionalLight("Directionallight1", new BABYLON.Vector3(-1, -1, -1), scene);
 
     var gd = BABYLON.MeshBuilder.CreateGround("gd", { width: 2000, height: 2000, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
-    gd.position.y = -30;
+    gd.position.y = -60;
     gd.material = new BABYLON.StandardMaterial("coneMaterial", scene);
     gd.material.diffuseTexture = new BABYLON.Texture("background.gif", scene);
     gd.material.diffuseTexture.uScale = 50;
@@ -170,6 +171,11 @@ window.addEventListener('DOMContentLoaded', function () {
       let randomJitter = 2;
       bd.position.x = x * 4 + (.5 - Math.random()) * randomJitter;
       bd.position.z = y * 4 + (.5 - Math.random()) * randomJitter;
+
+      if (groupId === 1) {
+        bd.position.y = bd.position.z;
+        bd.position.z = 0;
+      }
       //bd.position.x -= 50;
       //bd.position.z -= 50;
 
@@ -183,6 +189,11 @@ window.addEventListener('DOMContentLoaded', function () {
       flock.addBoid(bd);
     }
 
+    //flock.limits[0] = { p1: new Vector(-25, -.1, -25), p2: new Vector(25, .1, 25) };
+    //flock.limits[1] = { p1: new Vector(-35, -35, -.1), p2: new Vector(15, 35, .1) };
+    //flock.limits[2] = { p1: new Vector(-25, -25, -25), p2: new Vector(25, 25, 25) };
+
+
     coneMaster.isVisible = false;
 
     //camera.setTarget(flock.boids[Math.ceil(numBoids / 2)].mesh);
@@ -190,29 +201,27 @@ window.addEventListener('DOMContentLoaded', function () {
     function updateBoidProperties(boid, options) {
       boid.maxSpeed = options.maxSpeed.value;
       boid.maxAcceleration = options.maxAcceleration.value;
-      boid.minSeparation = options.minSeparation.value;
-      boid.maxSeparation = options.maxSeparation.value;
       boid.mix = options.mix.value;
 
       if (options.cohesion.use) {
         boid.cohereNeighbourRadius = options.cohesion.neighbourRadius.value;
-        boid.cohereFactor = options.cohesion.factor.value;
+        boid.cohereStrength = options.cohesion.strength.value;
       } else {
-        boid.cohereFactor = 0;
+        boid.cohereStrength = 0;
       }
 
       if (options.align.use) {
-        boid.alignFactor = options.align.factor.value;
+        boid.alignStrength = options.align.strength.value;
         boid.alignNeighbourRadius = options.align.neighbourRadius.value;
       } else {
-        boid.alignFactor = 0;
+        boid.alignStrength = 0;
       }
 
       if (options.separate.use) {
         boid.separateNeighbourRadius = options.separate.neighbourRadius.value;
-        boid.separateFactor = options.separate.factor.value;
+        boid.separateStrength = options.separate.strength.value;
       } else {
-        boid.separateFactor = 0;
+        boid.separateStrength = 0;
       }
     }
 
@@ -220,7 +229,7 @@ window.addEventListener('DOMContentLoaded', function () {
       gd.receiveShadows = options.shadows;
 
       let boidCount = Math.ceil(options.numberOfBoids.value);
-      flock.boidCount = boidCount;
+      flock.showBoids(boidCount);
       for (var i = 0; i < boidCount; i++) {
         updateBoidProperties(flock.boids[i], options);
       }
