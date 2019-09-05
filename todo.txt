@@ -7,10 +7,18 @@ Tag/colour
 Target
 Orbit
 Flow field
+optimise
+orbit
+branch
+
+mass
+collision
 avoid
 flee
 hunt
-mass
+pursue?
+detect forward only
+trails
 
 show/process n number of boids
 
@@ -21,15 +29,7 @@ names for
 
 
 
-NAME CONSISTENCY
-	boundary
-	limits
-	bounds
-	bound
-and control the above
-
-2D/3D
-
+flow field
 
 mouse
 
@@ -46,4 +46,10 @@ Versions for PlayCanvas, Three.js, Babylon.js, etc.
 Debugging
 	show decisions (heading, neighbours, etc.)
 
-Optimise
+
+
+
+• Bodies that meet should form a flock.
+• The flock member should not collide with each other.
+• The flock should not spontaneously lose members.
+• The flock should not spontaneously split off into new flocks.

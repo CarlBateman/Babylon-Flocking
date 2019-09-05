@@ -189,6 +189,7 @@ window.addEventListener('DOMContentLoaded', function () {
       flock.addBoid(bd);
     }
 
+    flock.limits[0] = { p1: new Vector(-10, -10, -10), p2: new Vector(10, 10, 10) };
     //flock.limits[0] = { p1: new Vector(-25, -.1, -25), p2: new Vector(25, .1, 25) };
     //flock.limits[1] = { p1: new Vector(-35, -35, -.1), p2: new Vector(15, 35, .1) };
     //flock.limits[2] = { p1: new Vector(-25, -25, -25), p2: new Vector(25, 25, 25) };
