@@ -8,10 +8,9 @@ window.addEventListener('DOMContentLoaded', function () {
     return { value, min, max, step, name, default: value };
   }
   let options = {
-    numberOfBoids: properties(200, 1, 500, 1, "№ of boids"),
+    numberOfBoids: properties(200, 1, 1500, 1, "№ of boids"),
     pause: properties(false),
     shadows: properties(false),
-    //pause: properties(false),
     maxSpeed: properties(2, 0.1, 50, .1),
     maxAcceleration: properties(.2, 0, 10, .1),
     //minSeparation: properties(3, 0, 100, .5),
@@ -41,8 +40,15 @@ window.addEventListener('DOMContentLoaded', function () {
 
   setupGUI(options, gui);
 
-  options.restoreDefaults = function (options) {
+  options.restoreDefaults = function () {
     gui.__controllers.forEach(controller => controller.setValue(controller.initialValue));
+
+    let keys = Object.keys(gui.__folders);
+    for (let i = 0; i < keys.length; i++) {
+      let key = keys[i];
+
+      gui.__folders[key].__controllers.forEach(controller => controller.setValue(controller.initialValue))
+    }
   };
 
   gui.add(options, "restoreDefaults");
@@ -136,7 +142,7 @@ window.addEventListener('DOMContentLoaded', function () {
 
     let flock = FLOCKING.Flock();
 
-    let numBoids = 500;
+    let numBoids = options.numberOfBoids.max;
     let stepX = Math.ceil(Math.sqrt(numBoids));
     let stepY = Math.ceil(numBoids / stepX);
 
@@ -189,10 +195,10 @@ window.addEventListener('DOMContentLoaded', function () {
       flock.addBoid(bd);
     }
 
-    flock.limits[0] = { p1: new Vector(-10, -10, -10), p2: new Vector(10, 10, 10) };
-    //flock.limits[0] = { p1: new Vector(-25, -.1, -25), p2: new Vector(25, .1, 25) };
-    //flock.limits[1] = { p1: new Vector(-35, -35, -.1), p2: new Vector(15, 35, .1) };
-    //flock.limits[2] = { p1: new Vector(-25, -25, -25), p2: new Vector(25, 25, 25) };
+    flock.limits[0] = { p1: new Vec3(-10, -10, -10), p2: new Vec3(10, 10, 10) };
+    //flock.limits[0] = { p1: new Vec3(-25, -.1, -25), p2: new Vec3(25, .1, 25) };
+    //flock.limits[1] = { p1: new Vec3(-35, -35, -.1), p2: new Vec3(15, 35, .1) };
+    //flock.limits[2] = { p1: new Vec3(-25, -25, -25), p2: new Vec3(25, 25, 25) };
 
 
     coneMaster.isVisible = false;
