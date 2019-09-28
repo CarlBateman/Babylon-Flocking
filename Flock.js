@@ -11,6 +11,8 @@ FLOCKING.Flock = function (numBoids = 0) {
 
   this.boids = [];
   this.boidCount = 0;
+  this.numberOfNeighbours = 10;
+
   this.limits = [{ p1: new Vector(-100, -100, -100), p2: new Vector(100, 100, 100) }];
 
   this.bounds = { lower: new Vector(), upper: new Vector(), centre: new Vector() };
@@ -51,27 +53,17 @@ FLOCKING.Flock = function (numBoids = 0) {
     if (this.boidCount > this.boids.length)
       this.boidCount = this.boids.length;
 
-    var octree1 = new Octree(new Vec3(-10, -10, -10), new Vec3(20, 20, 20));
-
-    //let a = 0;
-    //octree1.add(new Vec3(0,  0,   0), a++);
-    //octree1.add(new Vec3(2,  1,   0), a++);
-    //octree1.add(new Vec3(2,  2,   0), a++);
-    //octree1.add(new Vec3(2,  3,   0), a++);
-    //octree1.add(new Vec3(5,  0,   0), a++);
-    //octree1.add(new Vec3(0,-12,   0), a++);
-    //octree1.add(new Vec3(0, 0, -23), a++);
-
-    //let nodes = octree1.findNearbyPoints(new Vec3(0, 0, 0), 50, { notSelf: true, includeData: true });
-    //console.log(nodes);
-    //debugger;
-    var octree = new Octree(new Vec3(-100, -100, -100), new Vec3(200, 200, 200));
+    // groups!!!
+    let octrees = [];
+    for (var i = 0; i < 3; i++) {
+      octrees[i] = new Octree(new Vec3(-110, -110, -110), new Vec3(220, 220, 220));
+    }
 
     for (let i = 0; i < this.boidCount; i++) {
       let bd = this.boids[i];
       let t = bd.position.toArray(3);
       let v = new Vec3(...t);
-      octree.add(v, i);
+      octrees[bd.groupId].add(v, i);
 
       //// neighbour filter on range
       //// don't use native filter (for loop is quicker)
@@ -94,23 +86,43 @@ FLOCKING.Flock = function (numBoids = 0) {
     this.bounds.lower = lower;
     this.bounds.centre = upper.add(lower).divide(2);
 
-
+    let res = [];
     for (let i = 0; i < this.boidCount; i++) {
       bd = this.boids[i];
 
-      let neighbourRadius = Math.min(bd.cohereNeighbourRadius, bd.alignNeighbourRadius, bd.separateNeighbourRadius);
 
-      let res = octree.findNearbyPoints(new Vec3(...bd.position.toArray(3)), neighbourRadius, { notSelf: true, includeData: true });
+      /////////////////////////////////////////////////
+      // this should be a function
+      let radius = 2;
+      let happy = false;
 
-      if (res.points.length < 10) {
-        neighbourRadius = Math.max(bd.cohereNeighbourRadius, bd.alignNeighbourRadius, bd.separateNeighbourRadius);
+      while (!happy) {
+        res[bd.groupId] = octrees[bd.groupId].findNearbyPoints(new Vec3(...bd.position.toArray(3)), radius, { notSelf: true, includeData: true });
 
-        res = octree.findNearbyPoints(new Vec3(...bd.position.toArray(3)), neighbourRadius, { notSelf: true, includeData: true });
+        if (res[bd.groupId].points.length < this.numberOfNeighbours) {
+          radius += 1;
+          if (radius > 256) {
+            happy = true;
+          }
+        } else {
+          happy = true;
+        }
       }
 
+      // get res for other groups at same radius
+      for (var j = 0; j < 3; j++) {
+        if (j !== bd.groupId) {
+          res[j] = octrees[j].findNearbyPoints(new Vec3(...bd.position.toArray(3)), radius, { notSelf: true, includeData: true });
+        }
+      }
+      // this should be a function
+      /////////////////////////////////////////////////
+      
       let neighbours = [];
-      for (var j = 0; j < res.points.length; j++) {
-        neighbours.push(this.boids[res.data[j]]);
+      for (var k = 0; k < 3; k++) {
+        for (var j = 0; j < res[k].points.length; j++) {
+          neighbours.push(this.boids[res[k].data[j]]);
+        }
       }
 
       bd.update(dt);
@@ -170,6 +182,7 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
   this.position = position;
   this.maxSpeed = maxSpeed;
   this.maxAcceleration = 0.1;
+  this.numNeighbours = 8;
   this.separateNeighbourRadius = 8;
   this.alignNeighbourRadius = 20;
   this.cohereNeighbourRadius = 10;
@@ -179,10 +192,12 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
   this.radius = 1;
   this.groupId = 0;
   this.mix = 0;
-  this.wrap = false;
-  this.bound = true;
-  this.mix = 0;
+  this.wrap = true;
+  this.bound = false;
   this.hidden = false;
+  this.separateNumberOfNeighbours = 10;
+  this.alignNumberOfNeighbours = 10;
+  this.cohereNumberOfNeighbours = 10;
 
   this.heading = new Vector();
   // private
@@ -192,7 +207,6 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
   let separateNeighbourRadiusSq;
   let alignNeighbourRadiusSq;
   let cohereNeighbourRadiusSq;
-  let radiusSq;
 
   const sqrt1_3 = Math.sqrt(1 / 3);
 
@@ -206,20 +220,26 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
     this.velocity = this.velocity.add(acceleration.multiply(dt)).limit(this.maxSpeed);
     //if (this.velocity.length() < 0)
     //  this.velocity = this.velocity.setMag(1);
-    this.heading = this.velocity;
+    this.heading = this.velocity.unit();
   };
 
   this.steer = function (dt, boids, boidCount, limits) {
     getNeighbours(boids, boidCount);
     acceleration.zero();
+    //acceleration = acceleration.add(wiggle().multiply(dt));
     acceleration = acceleration.add(align(neighboursOther).multiply(this.alignStrength * this.mix));
     acceleration = acceleration.add(cohere(neighboursOther).multiply(this.cohereStrength * this.mix));
     // always apply a minimum to avoid collisions
-    acceleration = acceleration.add(separate(neighboursOther).multiply(this.separateStrength * (1 + this.mix)));
+    acceleration = acceleration.add(separate(neighboursOther).multiply(this.separateStrength));
+    //acceleration = acceleration.add(separate(neighboursOther).multiply(this.separateStrength * (1 + this.mix)));
 
     acceleration = acceleration.add(align(neighboursSame).multiply(this.alignStrength));
     acceleration = acceleration.add(separate(neighboursSame).multiply(this.separateStrength));
     acceleration = acceleration.add(cohere(neighboursSame).multiply(this.cohereStrength));
+
+    //acceleration = acceleration.add(clump(neighboursOther));
+    //acceleration = acceleration.add(clump(neighboursSame));
+
     acceleration = acceleration.limit(this.maxAcceleration);
     if (this.bound)
       acceleration = acceleration.add(limit(limits).multiply(.1));
@@ -227,12 +247,12 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
       wrap(limits);
   };
 
-  let getNeighbours = (boids, boidCount) => {
+  let getNeighbours_OLD = (boids, boidCount) => {
     neighboursSame = [];
     neighboursOther = [];
     let boid;
 
-    radiusSq = this.radius * this.radius;
+    let radiusSq = this.radius * this.radius;
 
     separateNeighbourRadiusSq = this.separateNeighbourRadius;
     alignNeighbourRadiusSq = this.alignNeighbourRadius;
@@ -261,8 +281,6 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
         continue;
 
 
-
-
       let d = relativePosition.lengthSq();
       if (d < neighbourRadiusSq) {
         if (this.getId() === boid.getId()) continue;
@@ -278,18 +296,64 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
     neighboursOther.sort((a,b) => a.d - b.d);
   };
 
+  let getNeighbours = (boids, boidCount) => {
+    neighboursSame = [];
+    neighboursOther = [];
+    let boid;
+
+    separateNeighbourRadiusSq = this.separateNeighbourRadius * this.separateNeighbourRadius;
+    alignNeighbourRadiusSq = this.alignNeighbourRadius * this.alignNeighbourRadius;
+    cohereNeighbourRadiusSq = this.cohereNeighbourRadius * this.cohereNeighbourRadius;
+
+    for (var i = 0; i < boidCount; i++) {
+      boid = boids[i];
+      if (boid.hidden) continue;
+
+      if (this.getId() === boid.getId()) continue;
+
+      let relativePosition = this.position.subtract(boid.position);
+
+      // todo - only process boids in front, ignoring boids behind
+      if (this.position.angleTo(boid.position) > Math.PI/2)
+        continue;
+
+      let d = relativePosition.lengthSq();
+
+      if (this.groupId === boid.groupId) {
+        neighboursSame.push({ d, id: boid.getId(), velocity: boid.velocity, position: boid.position });
+      } else {
+        neighboursOther.push({ d, id: boid.getId(), velocity: boid.velocity, position: boid.position });
+      }
+    }
+    neighboursSame.sort((a, b) => a.d - b.d);
+    neighboursOther.sort((a, b) => a.d - b.d);
+  };
+
+  let clump = (neighbours) => {
+    let countTooFar = 0;
+    let result = new Vector(0, 0, 0);
+    //for (let i = 0; i < neighbours.length; i++) {
+    //  if (self.position.subtract(neighbours[i]) > maxSeparation) {
+    //    result = result.add(neighbours[i].position);
+    //    countTooFar++;
+    //  }
+    //}
+    //result = result.divide(countTooFar);
+    result = result.subtract(this.position);
+    result = result.unit();
+    return result;
+  };
+
   let align = (neighbours) => {
     let countAligned = 0;
     let result = new Vector();
 
-    let countLimit = 10;
-
     for (let i = 0; i < neighbours.length; i++) {
-      if (neighbours[i].d < cohereNeighbourRadiusSq) {
+      if (neighbours[i].d < alignNeighbourRadiusSq) {
         result = result.add(neighbours[i].velocity);
         countAligned++;
       }
-      if (countAligned > countLimit) {
+      if (countAligned > this.numberOfNeighbours) {
         break;
       }
     }
@@ -308,15 +372,14 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
     let countTooFar = 0;
     let result = new Vector();
 
-    let countLimit = 10;
-    let radius = this.radius * this.radius;
+    let radiusSq = this.radius * this.radius * 2;
 
     for (let i = 0; i < neighbours.length; i++) {
-      if (neighbours[i].d < alignNeighbourRadiusSq && neighbours[i].d > radius) {
+      if (neighbours[i].d < cohereNeighbourRadiusSq && neighbours[i].d > radiusSq) {
         result = result.add(neighbours[i].position);
         countTooFar++;
       }
-      if (countTooFar > countLimit) {
+      if (countTooFar > this.numberOfNeighbours) {
         break;
       }
     }
@@ -337,17 +400,16 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
     let countTooClose = 0;
     let result = new Vector();
 
-    let countLimit = 10;
-
     for (let i = 0; i < neighbours.length; i++) {
       let d = neighbours[i].d;
       let pos = neighbours[i].position;
       if (d < separateNeighbourRadiusSq && d > 0) {
-        let diff = this.position.subtract(pos).unit().divide(d);
+        //let diff = this.position.subtract(pos).unit().divide(d);
+        let diff = this.position.subtract(pos).divide(d);
         result = result.add(diff);
         countTooClose++;
       }
-      if (countTooClose > countLimit) {
+      if (countTooClose > this.numberOfNeighbours) {
         break;
       }
     }
@@ -361,6 +423,19 @@ FLOCKING.Boid = function ({ velocity = new Vector(0, 0, 1),
       //result = result.negative();
     }
     return result;
+  };
+
+  let wiggle = () => {
+    // generate point along normal to velocity
+    let x = Math.random() - .5;
+    let y = Math.random() - .5;
+    let z = Math.random() - .5;
+    let v = new Vector(x, y, z);
+    v = v.multiply(this.velocity).unit();
+    return this.velocity.unit().multiply(10).add(v).limit(this.maxAcceleration);
+  };
+
+  let repelLimit = ()=> {
   };
 
   let limit = (limits) => {

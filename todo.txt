@@ -1,24 +1,52 @@
-﻿weight
+﻿merge with vec3 and vector
+
+rationalise vector library used
+
+
+notes
+-----
+find params for specific behaviour
+	- birds
+	- fish
+	- etc
+
+trails - not flock/boid responsibility
+colours based on direction
+colours based on position
+show limits???
+
+update alternate updates
+prevent collisions
+
+
+
+bugs
+----
+
+
+features
+--------
+expose radius
+expose angle
+mass
+
 targets
 obstacles
-mix
-Idle
+Idle/solo behaviour
+Wiggle
 Tag/colour
 Target
 Orbit
 Flow field
 optimise
 orbit
-branch
+predator
 
-mass
 collision
 avoid
 flee
 hunt
 pursue?
-detect forward only
-trails
 
 show/process n number of boids
 
@@ -52,4 +80,4 @@ Debugging
 • Bodies that meet should form a flock.
 • The flock member should not collide with each other.
 • The flock should not spontaneously lose members.
-• The flock should not spontaneously split off into new flocks.
+• The flock should not spontaneously split off into new flocks.
