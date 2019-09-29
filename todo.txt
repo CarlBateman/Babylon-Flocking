@@ -1,9 +1,4 @@
-﻿merge with vec3 and vector
-
-rationalise vector library used
-
-
-notes
+﻿notes
 -----
 find params for specific behaviour
 	- birds
@@ -26,6 +21,7 @@ bugs
 
 features
 --------
+ignore other groups (allow collide/pass through)
 expose radius
 expose angle
 mass
