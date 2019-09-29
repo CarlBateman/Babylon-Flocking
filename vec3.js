@@ -14,9 +14,9 @@ var Vec3 = (function () {
   Vec3.count = 0;
 
   function Vec3(x, y, z) {
-    this.x = x != null ? x : 0;
-    this.y = y != null ? y : 0;
-    this.z = z != null ? z : 0;
+    this.x = x || 0;
+    this.y = y || 0;
+    this.z = z || 0;
     Vec3.count++;
   }
 
@@ -195,7 +195,27 @@ var Vec3 = (function () {
 
   Vec3.Zero = new Vec3(0, 0, 0);
 
-  Vec3;
+  Vec3.prototype.setZero = function () {
+    this.x = 0;
+    this.y = 0;
+    this.z = 0;
+    return this;
+  };
+
+  Vec3.prototype.limit = function (f) {
+    if (this.length() > f) {
+      return this.normalize().scale(f);
+    }
+    return this;
+  };
+
+  Vec3.prototype.angleTo = function (a) {
+    return Math.acos(this.dot(a) / (this.length() * a.length()));
+  };
+
+  Vec3.prototype.setMag = function (mag) {
+    return this.normalize().scale(mag);
+  };
 
   return Vec3;
 
