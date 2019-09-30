@@ -231,6 +231,7 @@ FLOCKING.Boid = function ({ velocity = new Vec3(0, 0, 1),
     //acceleration = acceleration.add(clump(neighboursOther));
     //acceleration = acceleration.add(clump(neighboursSame));
 
+    acceleration = acceleration.scale(1/this.mass);
     acceleration = acceleration.limit(this.maxAcceleration);
     if (this.bound)
       acceleration = acceleration.add(limit(limits).scale(.1));
@@ -345,9 +346,12 @@ FLOCKING.Boid = function ({ velocity = new Vec3(0, 0, 1),
       let d = neighbours[i].d;
       let pos = neighbours[i].position;
       if (d < separateNeighbourRadiusSq && d > 0) {
+        let distToRadius = this.position.clone().sub(pos).length();
+        distToRadius -= this.radius;
+        distToRadius *= distToRadius;
         //let diff = this.position.sub(pos).unit().scale(1/d);
         //let diff = this.position.sub(pos).scale(1/d);
-        let diff = this.position.clone().sub(pos).scale(1/d);
+        let diff = this.position.clone().sub(pos).scale(1 / distToRadius);
         result.add(diff);
         countTooClose++;
       }

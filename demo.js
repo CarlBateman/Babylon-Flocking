@@ -12,8 +12,10 @@ window.addEventListener('DOMContentLoaded', function () {
     numberOfBoids: properties(200, 1, 1500, 1, "№ boids"),
     pause: properties(false),
     shadows: properties(false),
-    maxSpeed: properties(2, 0.1, 50, .1),
-    maxAcceleration: properties(.03, 0, 10, .1),
+    maxSpeed: properties(2, 0, 50, .1),
+    mass: properties(.1, 0, 10, .1),
+    radius: properties(.1, 0, 10, .1, "size"),
+    maxAcceleration: properties(.03, 0, 4, .01),
     //minSeparation: properties(3, 0, 100, .5),
     //maxSeparation: properties(10, 1, 100, .5),
     mix: properties(0, -1, 1, .05),
@@ -227,6 +229,8 @@ window.addEventListener('DOMContentLoaded', function () {
       boid.maxSpeed = options.maxSpeed.value;
       boid.maxAcceleration = options.maxAcceleration.value;
       boid.mix = options.mix.value;
+      boid.mass = options.mass.value;
+      boid.size = options.radius.value;
       boid.alignNumberOfNeighbours = options.align.numberOfNeighbours.value;
       boid.cohesionNumberOfNeighbours = options.cohesion.numberOfNeighbours.value;
       boid.separateNumberOfNeighbours = options.separate.numberOfNeighbours.value;
