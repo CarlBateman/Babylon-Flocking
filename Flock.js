@@ -160,7 +160,6 @@ FLOCKING.Flock = function (numBoids = 0) {
 FLOCKING.Boid = function ({ velocity = new Vec3(0, 0, 1),
   position = new Vec3(10, 0, 0),
   maxSpeed = 1,
-  mesh = null
 } = {}
 ) {
   let Boid = FLOCKING.Boid;
@@ -169,7 +168,6 @@ FLOCKING.Boid = function ({ velocity = new Vec3(0, 0, 1),
     return new Boid();
   }
 
-  this.mesh = mesh;
   this.mass = 1;
   this.velocity = velocity;
   this.position = position;
