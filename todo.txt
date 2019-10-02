@@ -22,9 +22,7 @@ bugs
 features
 --------
 ignore other groups (allow collide/pass through)
-expose radius
 expose angle
-mass
 
 targets
 obstacles
@@ -44,7 +42,6 @@ flee
 hunt
 pursue?
 
-show/process n number of boids
 
 names for
 	cohere/cohesion
@@ -58,9 +55,8 @@ flow field
 mouse
 
 
+Predators
 
-Tidy test code
-Tidy Flock code
 
 
 Map to sphere, cylinder

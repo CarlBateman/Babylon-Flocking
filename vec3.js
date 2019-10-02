@@ -217,6 +217,13 @@ var Vec3 = (function () {
     return this.normalize().scale(mag);
   };
 
+  Vec3.prototype.negative = function () {
+    this.x = -this.x;
+    this.y = -this.y;
+    this.z = -this.z;
+    return this;
+  };
+
   return Vec3;
 
 })();

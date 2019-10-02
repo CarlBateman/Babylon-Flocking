@@ -3,6 +3,12 @@ var FLOCKING = FLOCKING || (function () {
   return {};
 })();
 
+FLOCKING.Target = function () {
+  this.position = new Vec3();
+  this.inner = 1;
+  this.outer = 10;
+};
+
 FLOCKING.Flock = function (numBoids = 0) {
   let Flock = FLOCKING.Flock;
   if (!(this instanceof Flock)) {
@@ -10,6 +16,8 @@ FLOCKING.Flock = function (numBoids = 0) {
   }
 
   this.boids = [];
+  this.predators = [];
+  this.targets = [];
   this.boidCount = 0;
   this.numberOfNeighbours = 10;
   let needsUpdate = true;
@@ -19,6 +27,10 @@ FLOCKING.Flock = function (numBoids = 0) {
   this.bounds = { lower: new Vec3(), upper: new Vec3(), centre: new Vec3() };
 
   let Boid = FLOCKING.Boid;
+
+  this.addTarget = function (target) {
+    this.targets.push(target);
+  };
 
   this.addBoid = function (nboid) {
     if (nboid instanceof Boid) {
@@ -115,9 +127,9 @@ FLOCKING.Flock = function (numBoids = 0) {
         let boidCount = Math.min(this.boidCount, neighbours.length);
 
         if (this.limits[bd.groupId] !== undefined)
-          bd.steer(dt, neighbours, boidCount, this.limits[bd.groupId]);
+          bd.steer(dt, neighbours, boidCount, this.limits[bd.groupId], this.targets);
         else
-          bd.steer(dt, neighbours, boidCount, this.limits[0]);
+          bd.steer(dt, neighbours, boidCount, this.limits[0], this.targets);
       }
       needsUpdate = false;
     } else {
@@ -212,7 +224,7 @@ FLOCKING.Boid = function ({ velocity = new Vec3(0, 0, 1),
     this.heading = this.velocity.normalize();
   };
 
-  this.steer = function (dt, boids, boidCount, limits) {
+  this.steer = function (dt, boids, boidCount, limits, targets) {
     getNeighbours(boids, boidCount);
     acceleration.setZero();
     //acceleration = acceleration.add(wiggle().scale(dt));
@@ -225,11 +237,15 @@ FLOCKING.Boid = function ({ velocity = new Vec3(0, 0, 1),
     acceleration = acceleration.add(align(neighboursSame).scale(this.alignStrength));
     acceleration = acceleration.add(separate(neighboursSame).scale(this.separateStrength));
     acceleration = acceleration.add(cohere(neighboursSame).scale(this.cohereStrength));
+    if (targets !== undefined)
+      acceleration = acceleration.add(target(targets));
 
     //acceleration = acceleration.add(clump(neighboursOther));
     //acceleration = acceleration.add(clump(neighboursSame));
 
-    acceleration = acceleration.scale(1/this.mass);
+    if (this.mass !== 0) {
+      acceleration = acceleration.scale(1 / this.mass);
+    }
     acceleration = acceleration.limit(this.maxAcceleration);
     if (this.bound)
       acceleration = acceleration.add(limit(limits).scale(.1));
@@ -267,21 +283,6 @@ FLOCKING.Boid = function ({ velocity = new Vec3(0, 0, 1),
     }
     neighboursSame.sort((a, b) => a.d - b.d);
     neighboursOther.sort((a, b) => a.d - b.d);
-  };
-
-  let clump = (neighbours) => {
-    let countTooFar = 0;
-    let result = new Vec3(0, 0, 0);
-    //for (let i = 0; i < neighbours.length; i++) {
-    //  if (self.position.sub(neighbours[i]) > maxSeparation) {
-    //    result = result.add(neighbours[i].position);
-    //    countTooFar++;
-    //  }
-    //}
-    //result = result.scale(1/countTooFar);
-    result.sub(this.position);
-    result.unit();
-    return result;
   };
 
   let align = (neighbours) => {
@@ -347,8 +348,6 @@ FLOCKING.Boid = function ({ velocity = new Vec3(0, 0, 1),
         let distToRadius = this.position.clone().sub(pos).length();
         distToRadius -= this.radius;
         distToRadius *= distToRadius;
-        //let diff = this.position.sub(pos).unit().scale(1/d);
-        //let diff = this.position.sub(pos).scale(1/d);
         let diff = this.position.clone().sub(pos).scale(1 / distToRadius);
         result.add(diff);
         countTooClose++;
@@ -359,15 +358,63 @@ FLOCKING.Boid = function ({ velocity = new Vec3(0, 0, 1),
     }
 
     if (countTooClose > 0) {
-      result.scale(1/countTooClose);
-      // direction to centre should be relative from current position
+      result.scale(1 / countTooClose);
+      // direction to centre should be relative to current position
       result.setMag(this.maxSpeed);
       result.sub(this.velocity);
       result.limit(this.maxAcceleration);
-      //result = result.negative();
     }
     return result;
   };
+
+  let target = (targets) => {
+    let count = 0;
+    let result = new Vec3(0, 0, 0);
+    for (let i = 0; i < targets.length; i++) {
+      let innerSq = targets[i].inner * targets[i].inner;
+      let outerSq = targets[i].outer * targets[i].outer;
+
+      let relativePositon = this.position.clone().sub(targets[i].position);
+      let distSq = relativePositon.lengthSquared();
+
+      if (distSq < outerSq && distSq > innerSq) {
+        let distToInner = Math.sqrt(distSq) - targets[i].inner;
+        let dirToTarget = relativePositon.clone().normalize();
+        let forceToTarget = dirToTarget.scale(1 / (distToInner ));
+
+        let direction = this.velocity.clone().normalize();
+
+        result = result.add(forceToTarget);
+        count++;
+      }
+    }
+    if (count > 0) {
+      result.negative();
+      result = result.scale(1 / count);
+      result.setMag(this.maxSpeed);
+      result.sub(this.velocity);
+      result.limit(this.maxAcceleration);
+    }
+    return result;
+  };
+
+  let barriers = () => {
+    let countTooFar = 0;
+    let result = new Vec3(0, 0, 0);
+    //for (let i = 0; i < neighbours.length; i++) {
+    //  if (self.position.sub(neighbours[i]) > maxSeparation) {
+    //    result = result.add(neighbours[i].position);
+    //    countTooFar++;
+    //  }
+    //}
+    //result = result.scale(1/countTooFar);
+    result.sub(this.position);
+    result.unit();
+    return result;
+  };
+
+
+
 
   let wiggle = () => {
     // generate point along normal to velocity
@@ -377,6 +424,21 @@ FLOCKING.Boid = function ({ velocity = new Vec3(0, 0, 1),
     let v = new Vec3(x, y, z);
     v = v.scale(this.velocity).unit();
     return this.velocity.unit().scale(10).add(v).limit(this.maxAcceleration);
+  };
+
+  let clump = (neighbours) => {
+    let countTooFar = 0;
+    let result = new Vec3(0, 0, 0);
+    //for (let i = 0; i < neighbours.length; i++) {
+    //  if (self.position.sub(neighbours[i]) > maxSeparation) {
+    //    result = result.add(neighbours[i].position);
+    //    countTooFar++;
+    //  }
+    //}
+    //result = result.scale(1/countTooFar);
+    result.sub(this.position);
+    result.unit();
+    return result;
   };
 
   let repelLimit = ()=> {

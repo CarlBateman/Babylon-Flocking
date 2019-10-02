@@ -13,9 +13,9 @@ window.addEventListener('DOMContentLoaded', function () {
     pause: properties(false),
     shadows: properties(false),
     maxSpeed: properties(2, 0, 50, .1),
-    mass: properties(.1, 0, 10, .1),
-    radius: properties(.1, 0, 10, .1, "size"),
     maxAcceleration: properties(.03, 0, 4, .01),
+    mass: properties(1, -1, 10, .1),
+    radius: properties(1, 0, 10, .1, "size"),
     //minSeparation: properties(3, 0, 100, .5),
     //maxSeparation: properties(10, 1, 100, .5),
     mix: properties(0, -1, 1, .05),
@@ -97,8 +97,9 @@ window.addEventListener('DOMContentLoaded', function () {
     camera.upperBetaLimit = 100;
     camera.lowerAlphaLimit = -100;
     camera.lowerBetaLimit = -100;
-    camera.setPosition(new BABYLON.Vector3(-50, 50, -50));
-    camera.alpha = Math.PI * 1.5;
+    //camera.setPosition(new BABYLON.Vector3(-50, 50, -50));
+    camera.setPosition(new BABYLON.Vector3(-0.85, 126.75, -32.82));
+    camera.alpha = 4.6864376941186485;//Math.PI * 1.5;
     camera.attachControl(canvas, false);
     camera.wheelDeltaPercentage = 0.01;
     camera.panningSensibility = 100;
@@ -146,6 +147,21 @@ window.addEventListener('DOMContentLoaded', function () {
     let coneMaster = makeFlatCone();
 
     let flock = FLOCKING.Flock();
+    let target = new FLOCKING.Target();
+    target.inner = 10;
+    target.outer = 100;
+    target.position.x = -50;
+    flock.addTarget(target);
+    let cone = BABYLON.MeshBuilder.CreateCylinder("cone", { height: 1.5 }, scene);
+    cone.position.x = target.position.x;
+
+    target = new FLOCKING.Target();
+    target.inner = 10;
+    target.outer = 100;
+    target.position.x = 50;
+    flock.addTarget(target);
+    cone = BABYLON.MeshBuilder.CreateCylinder("cone", { height: 1.5 }, scene);
+    cone.position.x = target.position.x;
 
     let numBoids = options.numberOfBoids.max;
     let stepX = Math.ceil(Math.sqrt(numBoids));
@@ -298,6 +314,9 @@ window.addEventListener('DOMContentLoaded', function () {
           bd.mesh.getChildMeshes(false)[0].visibility = false;
         } else {
           bd.mesh.setDirection(bd.heading);
+          //bd.mesh.getChildMeshes(false)[0].material.diffuseColor.r = Math.abs(bd.heading.x);
+          //bd.mesh.getChildMeshes(false)[0].material.diffuseColor.g = Math.abs(1-bd.heading.x);
+          //bd.mesh.getChildMeshes(false)[0].material.diffuseColor.b = Math.abs(bd.heading.z);
           bd.mesh.position.x = bd.position.x;
           bd.mesh.position.y = bd.position.y;
           bd.mesh.position.z = bd.position.z;
