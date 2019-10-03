@@ -171,7 +171,7 @@ FLOCKING.Flock = function (numBoids = 0) {
 
 FLOCKING.Boid = function ({ velocity = new Vec3(0, 0, 1),
   position = new Vec3(10, 0, 0),
-  maxSpeed = 1,
+  maxSpeed = 1
 } = {}
 ) {
   let Boid = FLOCKING.Boid;
