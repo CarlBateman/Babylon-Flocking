@@ -1,4 +1,15 @@
-﻿notes
+﻿next
+----
+add/remove functions
+addBeforeUpdate
+addAfterUpdate
+addBeforeSteer
+addAfterSteer
+
+access "class"/"instance" variables from callback
+
+
+notes
 -----
 find params for specific behaviour
 	- birds
