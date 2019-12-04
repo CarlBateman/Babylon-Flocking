@@ -83,13 +83,13 @@ window.addEventListener('DOMContentLoaded', function () {
     scene.clearColor = new BABYLON.Color3(0.05, 0.05, 0.2);
 
     var camera = new BABYLON.ArcRotateCamera('camera1', 0, 0, 1, new BABYLON.Vector3(0, 0, 0), scene);
+    camera.attachControl(canvas, false);
     camera.upperAlphaLimit = 100;
     camera.upperBetaLimit = 100;
     camera.lowerAlphaLimit = -100;
     camera.lowerBetaLimit = -100;
     camera.setPosition(new BABYLON.Vector3(-50, 50, -50));
     camera.alpha = Math.PI * 1.5;
-    camera.attachControl(canvas, false);
     camera.wheelDeltaPercentage = 0.01;
     camera.panningSensibility = 100;
 
