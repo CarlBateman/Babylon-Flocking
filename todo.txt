@@ -1,4 +1,55 @@
-﻿next
+﻿Document basic functionality
+Simplify classes to ONLY basic behaviour
+	cohere/cohesion
+	separate
+	align
+	groups
+
+Flock/Boid responsibility
+
+
+
+weight
+targets
+obstacles
+mix
+Idle
+Tag/colour
+Target
+Orbit
+Flow field
+optimise
+orbit
+branch
+
+mass
+collision
+avoid
+flee
+hunt
+pursue?
+detect forward only
+trails
+
+show/process n number of boids
+
+names for
+	cohere/cohesion
+	separate
+	align
+
+
+
+flow field
+
+mouse
+
+
+
+Tidy test code
+Tidy Flock code
+
+next
 ----
 add/remove functions
 addBeforeUpdate
